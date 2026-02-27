@@ -177,7 +177,6 @@ export function MapControls() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Github className="size-4" />
           </Link>
         </Button>
       </div>
