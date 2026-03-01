@@ -367,7 +367,7 @@ export function MapView() {
       return;
     }
 
-    const destination = allLocations.find((l) => l.id === routeDestinationId);
+    const destination = allLocations.find((l) => l.vehicleNo === routeDestinationId);
     if (!destination) {
       routeDataRef.current = null;
       return;
@@ -375,7 +375,7 @@ export function MapView() {
 
     const fetchRoute = async () => {
       const start = `${userLocation.lng},${userLocation.lat}`;
-      const end = `${destination.coordinates.lng},${destination.coordinates.lat}`;
+      const end = `${destination.longitude},${destination.latitude}`;
 
       try {
         const response = await fetch(
@@ -387,7 +387,7 @@ export function MapView() {
           const coordinates = data.routes[0].geometry.coordinates as [number, number][];
           const bounds = new maplibregl.LngLatBounds();
           bounds.extend([userLocation.lng, userLocation.lat]);
-          bounds.extend([destination.coordinates.lng, destination.coordinates.lat]);
+          bounds.extend([destination.longitude, destination.latitude]);
           coordinates.forEach((coord) => bounds.extend(coord));
 
           routeDataRef.current = { coordinates, bounds };
@@ -491,11 +491,11 @@ export function MapView() {
     if (!mapRef.current || !selectedLocationId) return;
     if (routeDestinationId) return;
 
-    const location = locations.find((l) => l.id === selectedLocationId);
+    const location = locations.find((l) => l.vehicleNo === selectedLocationId);
     if (location) {
       isAnimatingRef.current = true;
       mapRef.current.flyTo({
-        center: [location.coordinates.lng, location.coordinates.lat],
+        center: [location.longitude, location.latitude],
         zoom: Math.max(mapRef.current.getZoom(), 14),
         essential: true,
       });

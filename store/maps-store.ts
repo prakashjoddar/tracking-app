@@ -145,7 +145,9 @@ export const useMapsStore = create<MapsState>((set, get) => ({
   resetSelectionIfNotInList: (locations) => {
     const state = get();
     if (state.selectedLocationId) {
-      const isInList = locations.some((l) => l.id === state.selectedLocationId);
+      const isInList = locations.some(
+        (l) => l.vehicleNo === state.selectedLocationId,
+      );
       if (!isInList) {
         set({ selectedLocationId: null, routeDestinationId: null });
       }
@@ -163,9 +165,9 @@ export const useMapsStore = create<MapsState>((set, get) => ({
     }
 
     if (state.selectedTags.length > 0) {
-      filtered = filtered.filter((l) =>
-        state.selectedTags.some((tag) => l.tags.includes(tag)),
-      );
+      // filtered = filtered.filter((l) =>
+      // state.selectedTags.some((tag) => l.tags.includes(tag)),
+      // );
     }
 
     if (state.searchQuery) {
