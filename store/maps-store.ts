@@ -1,15 +1,22 @@
+import { VehicleLocation } from "@/lib/types";
 import { create } from "zustand";
-import { locations as initialLocations, type Location } from "@/mock-data/locations";
 
 type ViewMode = "map" | "list" | "split";
-type SortBy = "date-newest" | "date-oldest" | "alpha-az" | "alpha-za" | "rating" | "visits" | "nearest";
+type SortBy =
+  | "date-newest"
+  | "date-oldest"
+  | "alpha-az"
+  | "alpha-za"
+  | "rating"
+  | "visits"
+  | "nearest";
 type MapStyle = "default" | "streets" | "outdoors" | "satellite";
 
 function calculateDistance(
   lat1: number,
   lng1: number,
   lat2: number,
-  lng2: number
+  lng2: number,
 ): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -25,7 +32,7 @@ function calculateDistance(
 }
 
 interface MapsState {
-  locations: Location[];
+  locations: VehicleLocation[];
   selectedCategory: string;
   selectedTags: string[];
   searchQuery: string;
@@ -53,14 +60,14 @@ interface MapsState {
   setRouteDestination: (locationId: string | null) => void;
   clearRoute: () => void;
   setPanelVisible: (visible: boolean) => void;
-  resetSelectionIfNotInList: (locations: Location[]) => void;
-  getFilteredLocations: () => Location[];
-  getFavoriteLocations: () => Location[];
-  getRecentLocations: () => Location[];
+  resetSelectionIfNotInList: (locations: VehicleLocation[]) => void;
+  getFilteredLocations: () => VehicleLocation[];
+  getFavoriteLocations: () => VehicleLocation[];
+  getRecentLocations: () => VehicleLocation[];
 }
 
 export const useMapsStore = create<MapsState>((set, get) => ({
-  locations: initialLocations,
+  locations: [],
   selectedCategory: "all",
   selectedTags: [],
   searchQuery: "",
@@ -69,7 +76,7 @@ export const useMapsStore = create<MapsState>((set, get) => ({
   selectedLocationId: null,
   mapCenter: { lat: 20, lng: 0 },
   mapZoom: 2,
-  mapStyle: "default",
+  mapStyle: "outdoors",
   userLocation: null,
   routeDestinationId: null,
   isPanelVisible: true,
@@ -77,15 +84,21 @@ export const useMapsStore = create<MapsState>((set, get) => ({
   setSelectedCategory: (categoryId) => {
     const state = get();
     const newState: Partial<MapsState> = { selectedCategory: categoryId };
-    
+
     if (state.selectedLocationId) {
-      const location = state.locations.find((l) => l.id === state.selectedLocationId);
-      if (location && categoryId !== "all" && location.categoryId !== categoryId) {
+      const location = state.locations.find(
+        (l) => l.vehicleNo === state.selectedLocationId,
+      );
+      if (
+        location &&
+        categoryId !== "all"
+        // && location.categoryId !== categoryId
+      ) {
         newState.selectedLocationId = null;
         newState.routeDestinationId = null;
       }
     }
-    
+
     set(newState);
   },
 
@@ -107,9 +120,9 @@ export const useMapsStore = create<MapsState>((set, get) => ({
   toggleFavorite: (locationId) =>
     set((state) => ({
       locations: state.locations.map((location) =>
-        location.id === locationId
-          ? { ...location, isFavorite: !location.isFavorite }
-          : location
+        location.vehicleNo === locationId
+          ? { ...location, isFavorite: false } //!location.isFavorite
+          : location,
       ),
     })),
 
@@ -144,22 +157,23 @@ export const useMapsStore = create<MapsState>((set, get) => ({
     let filtered = [...state.locations];
 
     if (state.selectedCategory !== "all") {
-      filtered = filtered.filter((l) => l.categoryId === state.selectedCategory);
+      // filtered = filtered.filter(
+      //   (l) => l.categoryId === state.selectedCategory,
+      // );
     }
 
     if (state.selectedTags.length > 0) {
       filtered = filtered.filter((l) =>
-        state.selectedTags.some((tag) => l.tags.includes(tag))
+        state.selectedTags.some((tag) => l.tags.includes(tag)),
       );
     }
 
     if (state.searchQuery) {
       const query = state.searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (l) =>
-          l.name.toLowerCase().includes(query) ||
-          l.description.toLowerCase().includes(query) ||
-          l.address.toLowerCase().includes(query)
+        (l) => l.vehicleNo.toLowerCase().includes(query),
+        // || l.description.toLowerCase().includes(query) ||
+        // l.address.toLowerCase().includes(query),
       );
     }
 
@@ -170,37 +184,45 @@ export const useMapsStore = create<MapsState>((set, get) => ({
             const distA = calculateDistance(
               state.userLocation!.lat,
               state.userLocation!.lng,
-              a.coordinates.lat,
-              a.coordinates.lng
+              a.latitude,
+              a.longitude,
             );
             const distB = calculateDistance(
               state.userLocation!.lat,
               state.userLocation!.lng,
-              b.coordinates.lat,
-              b.coordinates.lng
+              b.latitude,
+              b.longitude,
             );
             return distA - distB;
           });
         }
         break;
       case "date-newest":
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        filtered.sort(
+          (a, b) =>
+            new Date(b.date + " " + b.time).getTime() -
+            new Date(a.date + " " + a.time).getTime(),
+        );
         break;
       case "date-oldest":
-        filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        filtered.sort(
+          (a, b) =>
+            new Date(a.date + " " + a.time).getTime() -
+            new Date(b.date + " " + b.time).getTime(),
+        );
         break;
       case "alpha-az":
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        filtered.sort((a, b) => a.vehicleNo.localeCompare(b.vehicleNo));
         break;
       case "alpha-za":
-        filtered.sort((a, b) => b.name.localeCompare(a.name));
+        filtered.sort((a, b) => b.vehicleNo.localeCompare(a.vehicleNo));
         break;
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case "visits":
-        filtered.sort((a, b) => b.visitCount - a.visitCount);
-        break;
+      // case "rating":
+      //   filtered.sort((a, b) => b.rating - a.rating);
+      //   break;
+      // case "visits":
+      //   filtered.sort((a, b) => b.visitCount - a.visitCount);
+      //   break;
     }
 
     return filtered;
@@ -208,23 +230,29 @@ export const useMapsStore = create<MapsState>((set, get) => ({
 
   getFavoriteLocations: () => {
     const state = get();
-    let filtered = state.locations.filter((l) => l.isFavorite);
+    let filtered = state.locations;
+    //.filter((l) => l.isFavorite);
 
-    if (state.selectedCategory !== "all") {
-      filtered = filtered.filter((l) => l.categoryId === state.selectedCategory);
-    }
+    // if (state.selectedCategory !== "all") {
+    //   filtered = filtered.filter(
+    //     (l) => l.categoryId === state.selectedCategory,
+    //   );
+    // }
 
     if (state.searchQuery) {
       const query = state.searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (l) =>
-          l.name.toLowerCase().includes(query) ||
-          l.description.toLowerCase().includes(query) ||
-          l.address.toLowerCase().includes(query)
+        (l) => l.vehicleNo.toLowerCase().includes(query),
+        // l.description.toLowerCase().includes(query) ||
+        // l.address.toLowerCase().includes(query),
       );
     }
 
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    filtered.sort(
+      (a, b) =>
+        new Date(b.date + " " + b.time).getTime() -
+        new Date(a.date + " " + a.time).getTime(),
+    );
 
     return filtered;
   },
@@ -234,20 +262,25 @@ export const useMapsStore = create<MapsState>((set, get) => ({
     let filtered = [...state.locations];
 
     if (state.selectedCategory !== "all") {
-      filtered = filtered.filter((l) => l.categoryId === state.selectedCategory);
+      // filtered = filtered.filter(
+      //   (l) => l.categoryId === state.selectedCategory,
+      // );
     }
 
     if (state.searchQuery) {
       const query = state.searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (l) =>
-          l.name.toLowerCase().includes(query) ||
-          l.description.toLowerCase().includes(query) ||
-          l.address.toLowerCase().includes(query)
+        (l) => l.vehicleNo.toLowerCase().includes(query),
+        // l.description.toLowerCase().includes(query) ||
+        // l.address.toLowerCase().includes(query),
       );
     }
 
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    filtered.sort(
+      (a, b) =>
+        new Date(b.date + " " + b.time).getTime() -
+        new Date(a.date + " " + a.time).getTime(),
+    );
 
     return filtered.slice(0, 20);
   },

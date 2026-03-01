@@ -6,6 +6,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useTheme } from "next-themes";
 import { useMapsStore } from "@/store/maps-store";
 import { categories, tags as allTags } from "@/mock-data/locations";
+import { useVehicleLocations } from "@/hooks/useVehicleLocations";
+import { useVehicleStore } from "@/store/location-store";
 
 const MAP_STYLES = {
   light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
@@ -40,6 +42,9 @@ export function MapView() {
     getFilteredLocations,
     locations: allLocations,
   } = useMapsStore();
+
+  useVehicleLocations()
+  const vehicles = useVehicleStore((s) => s.vehicles)
 
   const getMapStyleUrl = React.useCallback(() => {
     if (mapStyle === "default") {
@@ -185,158 +190,171 @@ export function MapView() {
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current.clear();
 
-    locations.forEach((location) => {
-      const category = categories.find((c) => c.id === location.categoryId);
-      const color = category?.color || "#6b7280";
-      const isSelected = selectedLocationId === location.id;
-      const isRouteDestination = routeDestinationId === location.id;
-
+    vehicles.forEach((vehicle) => {
       const el = document.createElement("div");
-      el.className = "marker-container";
+      el.className = "vehicle-marker";
       el.innerHTML = `
-        <div class="relative cursor-pointer transition-transform ${
-          isSelected || isRouteDestination ? "scale-125" : "hover:scale-110"
-        }">
-          <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 0C7.164 0 0 7.164 0 16C0 28 16 40 16 40C16 40 32 28 32 16C32 7.164 24.836 0 16 0Z" fill="${
-              isRouteDestination ? "#22c55e" : isSelected ? "#3b82f6" : color
-            }"/>
-            <circle cx="16" cy="14" r="6" fill="white"/>
-          </svg>
-          ${
-            isSelected
-              ? '<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-primary/30 animate-ping"></div>'
-              : ""
-          }
-          ${
-            isRouteDestination
-              ? '<div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center shadow-md"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>'
-              : ""
-          }
+        <div class="relative">
+          <div class="w-5 h-5 rounded-full bg-red-500 border-2 border-white shadow-lg"></div>
+          <div class="absolute inset-0 w-5 h-5 rounded-full bg-red-500/50 animate-ping"></div>
         </div>
       `;
 
-      el.addEventListener("click", () => {
-        selectLocation(location.id);
-      });
-
-      el.addEventListener("mouseenter", () => {
-        if (closeTimeoutRef.current) {
-          clearTimeout(closeTimeoutRef.current);
-        }
-
-        if (popupRef.current) {
-          popupRef.current.remove();
-        }
-
-        const stars =
-          "★".repeat(Math.floor(location.rating)) +
-          "☆".repeat(5 - Math.floor(location.rating));
-
-        const tagsHtml = location.tags
-          .slice(0, 4)
-          .map((tag) => `<span class="popup-tag">${getTagName(tag)}</span>`)
-          .join("");
-
-        const popupContent = `
-          <div class="location-popup" data-popup-hover="true">
-            <div class="popup-header">
-              <div class="popup-icon" style="background-color: ${color}20;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-              </div>
-              <div class="popup-title-section">
-                <h3 class="popup-title">${location.name}</h3>
-                <p class="popup-category">${category?.name || "Location"}</p>
-              </div>
-            </div>
-            
-            <p class="popup-description">${location.description}</p>
-            
-            <p class="popup-address">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              ${location.address}
-            </p>
-            
-            ${tagsHtml ? `<div class="popup-tags">${tagsHtml}</div>` : ""}
-            
-            <div class="popup-stats">
-              <div class="popup-stat">
-                <span class="popup-rating">
-                  <span class="stars">${stars}</span>
-                  <span class="rating-value">${location.rating}</span>
-                </span>
-              </div>
-              <div class="popup-stat">
-                <svg class="popup-stat-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span class="popup-stat-value">${location.visitCount}</span>
-                <span class="popup-stat-label">visits</span>
-              </div>
-            </div>
-            
-            <div class="popup-footer">
-              ${
-                location.isFavorite
-                  ? '<span class="popup-favorite">❤️ Favorite</span>'
-                  : "<span></span>"
-              }
-              <span class="popup-date">Added ${formatDate(location.createdAt)}</span>
-            </div>
-          </div>
-        `;
-
-        const popup = new maplibregl.Popup({
-          offset: [0, -35],
-          closeButton: false,
-          closeOnClick: false,
-          className: "location-hover-popup",
-          maxWidth: "380px",
-        })
-          .setLngLat([location.coordinates.lng, location.coordinates.lat])
-          .setHTML(popupContent)
-          .addTo(mapRef.current!);
-
-        const popupElement = popup.getElement();
-        if (popupElement) {
-          popupElement.addEventListener("mouseenter", () => {
-            isHoveringPopupRef.current = true;
-            if (closeTimeoutRef.current) {
-              clearTimeout(closeTimeoutRef.current);
-            }
-          });
-          popupElement.addEventListener("mouseleave", () => {
-            isHoveringPopupRef.current = false;
-            closePopup();
-          });
-          popupElement.addEventListener("click", () => {
-            selectLocation(location.id);
-            popup.remove();
-            popupRef.current = null;
-          });
-        }
-
-        popupRef.current = popup;
-      });
-
-      el.addEventListener("mouseleave", () => {
-        closePopup();
-      });
-
       const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([location.coordinates.lng, location.coordinates.lat])
+        .setLngLat([vehicle.longitude, vehicle.latitude])
         .addTo(mapRef.current!);
 
-      markersRef.current.set(location.id, marker);
+      markersRef.current.set(vehicle.vehicleNo, marker);
     });
-  }, [locations, selectedLocationId, selectLocation, closePopup, routeDestinationId]);
+
+
+    // locations.forEach((location) => {
+    //   const category = categories.find((c) => c.id === location.categoryId);
+    //   const color = category?.color || "#6b7280";
+    //   const isSelected = selectedLocationId === location.id;
+    //   const isRouteDestination = routeDestinationId === location.id;
+
+    //   const el = document.createElement("div");
+    //   el.className = "marker-container";
+    //   el.innerHTML = `
+    //     <div class="relative cursor-pointer transition-transform ${isSelected || isRouteDestination ? "scale-125" : "hover:scale-110"
+    //     }">
+    //       <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    //         <path d="M16 0C7.164 0 0 7.164 0 16C0 28 16 40 16 40C16 40 32 28 32 16C32 7.164 24.836 0 16 0Z" fill="${isRouteDestination ? "#22c55e" : isSelected ? "#3b82f6" : color
+    //     }"/>
+    //         <circle cx="16" cy="14" r="6" fill="white"/>
+    //       </svg>
+    //       ${isSelected
+    //       ? '<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-primary/30 animate-ping"></div>'
+    //       : ""
+    //     }
+    //       ${isRouteDestination
+    //       ? '<div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center shadow-md"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>'
+    //       : ""
+    //     }
+    //     </div>
+    //   `;
+
+    //   el.addEventListener("click", () => {
+    //     selectLocation(location.id);
+    //   });
+
+    //   el.addEventListener("mouseenter", () => {
+    //     if (closeTimeoutRef.current) {
+    //       clearTimeout(closeTimeoutRef.current);
+    //     }
+
+    //     if (popupRef.current) {
+    //       popupRef.current.remove();
+    //     }
+
+    //     const stars =
+    //       "★".repeat(Math.floor(location.rating)) +
+    //       "☆".repeat(5 - Math.floor(location.rating));
+
+    //     const tagsHtml = location.tags
+    //       .slice(0, 4)
+    //       .map((tag) => `<span class="popup-tag">${getTagName(tag)}</span>`)
+    //       .join("");
+
+    //     const popupContent = `
+    //       <div class="location-popup" data-popup-hover="true">
+    //         <div class="popup-header">
+    //           <div class="popup-icon" style="background-color: ${color}20;">
+    //             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    //               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+    //               <circle cx="12" cy="10" r="3"/>
+    //             </svg>
+    //           </div>
+    //           <div class="popup-title-section">
+    //             <h3 class="popup-title">${location.name}</h3>
+    //             <p class="popup-category">${category?.name || "Location"}</p>
+    //           </div>
+    //         </div>
+
+    //         <p class="popup-description">${location.description}</p>
+
+    //         <p class="popup-address">
+    //           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    //             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+    //             <circle cx="12" cy="10" r="3"/>
+    //           </svg>
+    //           ${location.address}
+    //         </p>
+
+    //         ${tagsHtml ? `<div class="popup-tags">${tagsHtml}</div>` : ""}
+
+    //         <div class="popup-stats">
+    //           <div class="popup-stat">
+    //             <span class="popup-rating">
+    //               <span class="stars">${stars}</span>
+    //               <span class="rating-value">${location.rating}</span>
+    //             </span>
+    //           </div>
+    //           <div class="popup-stat">
+    //             <svg class="popup-stat-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    //               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    //               <circle cx="12" cy="12" r="3"/>
+    //             </svg>
+    //             <span class="popup-stat-value">${location.visitCount}</span>
+    //             <span class="popup-stat-label">visits</span>
+    //           </div>
+    //         </div>
+
+    //         <div class="popup-footer">
+    //           ${location.isFavorite
+    //         ? '<span class="popup-favorite">❤️ Favorite</span>'
+    //         : "<span></span>"
+    //       }
+    //           <span class="popup-date">Added ${formatDate(location.createdAt)}</span>
+    //         </div>
+    //       </div>
+    //     `;
+
+    //     const popup = new maplibregl.Popup({
+    //       offset: [0, -35],
+    //       closeButton: false,
+    //       closeOnClick: false,
+    //       className: "location-hover-popup",
+    //       maxWidth: "380px",
+    //     })
+    //       .setLngLat([location.coordinates.lng, location.coordinates.lat])
+    //       .setHTML(popupContent)
+    //       .addTo(mapRef.current!);
+
+    //     const popupElement = popup.getElement();
+    //     if (popupElement) {
+    //       popupElement.addEventListener("mouseenter", () => {
+    //         isHoveringPopupRef.current = true;
+    //         if (closeTimeoutRef.current) {
+    //           clearTimeout(closeTimeoutRef.current);
+    //         }
+    //       });
+    //       popupElement.addEventListener("mouseleave", () => {
+    //         isHoveringPopupRef.current = false;
+    //         closePopup();
+    //       });
+    //       popupElement.addEventListener("click", () => {
+    //         selectLocation(location.id);
+    //         popup.remove();
+    //         popupRef.current = null;
+    //       });
+    //     }
+
+    //     popupRef.current = popup;
+    //   });
+
+    //   el.addEventListener("mouseleave", () => {
+    //     closePopup();
+    //   });
+
+    //   const marker = new maplibregl.Marker({ element: el })
+    //     .setLngLat([location.coordinates.lng, location.coordinates.lat])
+    //     .addTo(mapRef.current!);
+
+    //   markersRef.current.set(location.id, marker);
+    // });
+  }, [locations, selectedLocationId, selectLocation, closePopup, routeDestinationId, vehicles]);
 
   const routeDataRef = React.useRef<{
     coordinates: [number, number][];

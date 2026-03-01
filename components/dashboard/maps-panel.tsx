@@ -1,43 +1,54 @@
 "use client";
 
-import * as React from "react";
-import {
-  MapPin,
-  Heart,
-  Star,
-  Eye,
-  Clock,
-  Search,
-  X,
-  Route,
-  Loader2,
-  Navigation,
-  ArrowUpDown,
-  ArrowDownAZ,
-  ArrowUpAZ,
-  CalendarArrowDown,
-  CalendarArrowUp,
-  TrendingUp,
-  Check,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMapsStore } from "@/store/maps-store";
+import { Input } from "@/components/ui/input";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useVehicleLocations } from "@/hooks/useVehicleLocations";
+import { VehicleLocation } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import {
-  categories,
   tags as allTags,
+  categories,
+  statusColor,
   type Location,
 } from "@/mock-data/locations";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { useVehicleStore } from "@/store/location-store";
+import { useMapsStore } from "@/store/maps-store";
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  ArrowUpDown,
+  CalendarArrowDown,
+  CalendarArrowUp,
+  Check,
+  Clock,
+  Eye,
+  Heart,
+  Loader2,
+  LucideChevronsRight,
+  MapPin,
+  Navigation,
+  Rocket,
+  Route,
+  Search,
+  Star,
+  TrendingUp,
+  X
+} from "lucide-react";
+import * as React from "react";
+import { IoRocketSharp } from "react-icons/io5";
+import { LiaSatelliteDishSolid } from "react-icons/lia";
+import { PiMapPinFill } from "react-icons/pi";
 import { useMediaQuery } from "usehooks-ts";
+import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { useState } from "react";
 
 type PanelMode = "all" | "favorites" | "recents";
 
@@ -84,9 +95,9 @@ function calculateDistance(
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -105,6 +116,7 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [isLoadingRoute, setIsLoadingRoute] = React.useState(false);
   const [isRequestingLocation, setIsRequestingLocation] = React.useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const {
     selectedLocationId,
     searchQuery,
@@ -127,9 +139,12 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
 
   const isDesktop = useMediaQuery("(min-width: 640px)");
 
+  useVehicleLocations()
+  const vehicles = useVehicleStore((s) => s.vehicles)
+
   React.useEffect(() => {
     if (isDesktop && !isPanelVisible) {
-      setPanelVisible(true);
+      // setPanelVisible(true);
     }
   }, [isDesktop, isPanelVisible, setPanelVisible]);
 
@@ -212,29 +227,29 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     }
   };
 
-  const rawLocations = getLocations();
-  const locations = React.useMemo(() => {
-    if (!selectedLocationId) return rawLocations;
-    const selected = rawLocations.find((l) => l.id === selectedLocationId);
-    if (!selected) return rawLocations;
-    return [
-      selected,
-      ...rawLocations.filter((l) => l.id !== selectedLocationId),
-    ];
-  }, [rawLocations, selectedLocationId]);
+  // const rawLocations = getLocations();
+  // const locations = React.useMemo(() => {
+  //   if (!selectedLocationId) return rawLocations;
+  //   const selected = rawLocations.find((l) => l.id === selectedLocationId);
+  //   if (!selected) return rawLocations;
+  //   return [
+  //     selected,
+  //     ...rawLocations.filter((l) => l.id !== selectedLocationId),
+  //   ];
+  // }, [rawLocations, selectedLocationId]);
 
   const config = panelConfig[mode];
   const EmptyIcon = config.emptyIcon;
 
-  React.useEffect(() => {
-    if (selectedLocationId) {
-      const isInList = rawLocations.some((l) => l.id === selectedLocationId);
-      if (!isInList) {
-        selectLocation(null);
-        clearRoute();
-      }
-    }
-  }, [rawLocations, selectedLocationId, selectLocation, clearRoute]);
+  // React.useEffect(() => {
+  //   if (selectedLocationId) {
+  //     const isInList = rawLocations.some((l) => l.id === selectedLocationId);
+  //     if (!isInList) {
+  //       // selectLocation(null);
+  //       clearRoute();
+  //     }
+  //   }
+  // }, [rawLocations, selectedLocationId, selectLocation, clearRoute]);
 
   React.useEffect(() => {
     if (selectedLocationId && scrollContainerRef.current) {
@@ -250,6 +265,14 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     }
   };
 
+  const handleVehicleClick = (location: VehicleLocation) => {
+    if (selectedLocationId === location.vehicleNo) {
+      selectLocation(null);
+    } else {
+      selectLocation(location.vehicleNo);
+    }
+  };
+
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     selectLocation(null);
@@ -258,11 +281,11 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
 
   const handleGetDirections = async (
     e: React.MouseEvent,
-    location: Location
+    location: VehicleLocation
   ) => {
     e.stopPropagation();
 
-    if (routeDestinationId === location.id) {
+    if (routeDestinationId === location.vehicleNo) {
       clearRoute();
       return;
     }
@@ -277,7 +300,7 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     }
 
     setIsLoadingRoute(true);
-    setRouteDestination(location.id);
+    setRouteDestination(location.vehicleNo);
 
     setTimeout(() => {
       setIsLoadingRoute(false);
@@ -290,11 +313,11 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return "Today";
+    // if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
+    if (diffDays < 7) return date.toDateString() + " " + date.toLocaleTimeString() + " - " + `${diffDays} days ago`;
+    if (diffDays < 30) return date.toDateString() + " " + date.toLocaleTimeString() + " - " + `${Math.floor(diffDays / 7)} weeks ago`;
+    return dateString;
   };
 
   const getTagName = (tagId: string) => {
@@ -306,40 +329,63 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
       <Button
         variant="outline"
         size="icon"
-        className="absolute left-4 top-4 z-20 sm:hidden size-10 bg-background! shadow-xl"
+        // className="absolute left-4 top-4 z-20 sm:hidden size-10 bg-background! shadow-xl"
+        className="absolute left-4 top-4 z-20 size-10 bg-background! shadow-xl"
         onClick={() => setPanelVisible(true)}
       >
-        <MapPin className="size-5" />
+        <LucideChevronsRight className="size-5" />
       </Button>
     );
   }
 
+  const getStatusCount = (status: string) => {
+    return vehicles.filter((v) => v.status === status).length;
+  };
+
   return (
     <div className="absolute left-4 top-4 bottom-4 z-20 flex flex-col bg-background rounded-xl shadow-xl border overflow-hidden w-80 sm:w-[400px]">
+
       <div className="p-3 border-b flex items-center justify-between">
-        <div className="">
-          <h2 className="font-semibold flex items-center gap-2">
-            {mode === "recents" && <Clock className="size-4" />}
-            {config.title}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {config.getSubtitle(locations.length)}
-          </p>
-        </div>
+
         <div className="flex items-center gap-1">
-          <SidebarTrigger className="size-7" />
           <Button
             variant="ghost"
             size="icon"
-            className="size-7 sm:hidden"
-            onClick={() => setPanelVisible(false)}
+            // className="size-7 sm:hidden"
+            onClick={() => {
+              console.log("Closing panel");
+              setPanelVisible(false)
+            }}
           >
             <X className="size-4" />
           </Button>
+
+          <div className="ms-2">
+            <h2 className="font-semibold flex items-center gap-2">
+              {mode === "recents" && <Clock className="size-4" />}
+              {config.title}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {vehicles.length} locations
+            </p>
+          </div>
         </div>
+
+        <SidebarTrigger className="size-7" />
       </div>
 
       <div className="p-2 border-b">
+
+        <Tabs defaultValue={selectedStatus} className="w-full mb-3" onValueChange={(value) => setSelectedStatus(value)}>
+          <TabsList >
+            <TabsTrigger value="idle" style={{ color: statusColor["IDLE"] }}>IDLE <Badge className="ml-1" variant="secondary">{getStatusCount("IDLE")}</Badge></TabsTrigger>
+            <TabsTrigger value="running" style={{ color: statusColor["RUNNING"] }}>RUNNING <Badge className="ml-1" variant="secondary">{getStatusCount("RUNNING")}</Badge></TabsTrigger>
+            <TabsTrigger value="stopped" style={{ color: statusColor["STOPPED"] }}>STOPPED <Badge className="ml-1" variant="secondary">{getStatusCount("STOPPED")}</Badge></TabsTrigger>
+            <TabsTrigger value="parked" style={{ color: statusColor["PARKED"] }}>PARKED <Badge className="ml-1" variant="secondary">{getStatusCount("PARKED")}</Badge></TabsTrigger>
+            <TabsTrigger value="all" className="text-black">All</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -430,28 +476,23 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="p-2 space-y-2">
-          {locations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <EmptyIcon className="size-8 text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">{config.emptyTitle}</p>
-              {config.emptyDescription && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {config.emptyDescription}
-                </p>
-              )}
-            </div>
-          ) : (
-            locations.map((location) => {
+
+          {vehicles
+            .filter((v) => selectedStatus === 'all' || v.status === selectedStatus.toUpperCase())
+            .map((location, idx) => {
               const category = categories.find(
-                (c) => c.id === location.categoryId
+                (c) => c.id === location.vehicleNo
               );
-              const isSelected = selectedLocationId === location.id;
-              const isRouteActive = routeDestinationId === location.id;
+
+              // console.log(selectedLocationId, location.vehicleNo);
+
+              const isSelected = selectedLocationId === location.vehicleNo;
+              const isRouteActive = routeDestinationId === location.vehicleNo;
 
               if (isSelected) {
                 return (
                   <div
-                    key={location.id}
+                    key={location.vehicleNo}
                     className={cn(
                       "flex flex-col rounded-lg border-2 overflow-hidden",
                       isRouteActive
@@ -474,11 +515,9 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-semibold text-base">
-                                {location.name}
+                                {location.vehicleNo}
                               </h3>
-                              {location.isFavorite && (
-                                <Heart className="size-4 fill-red-500 text-red-500 shrink-0" />
-                              )}
+
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {category?.name}
@@ -496,24 +535,24 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                       </div>
 
                       <p className="text-sm text-muted-foreground mb-3">
-                        {location.address}
+                        {location.date} {location.time} - {location.vehicleNo}
                       </p>
 
-                      <p className="text-sm mb-4">{location.description}</p>
+                      <p className="text-sm mb-4">{location.time}</p>
 
                       <div className="flex items-center flex-wrap gap-4 mb-4">
                         {userLocation && (
                           <div className="flex items-center gap-1.5">
-                            <Navigation className="size-4 text-primary" />
+                            <Rocket className="size-4 text-primary" />
                             <span className="font-semibold text-primary">
-                              {formatDistance(getDistance(location) || 0)}
+                              {location.speed} km/h - {location.ignition ? "Ignition ON" : "Ignition OFF"}
                             </span>
                           </div>
                         )}
                         <div className="flex items-center gap-1.5">
                           <Star className="size-4 fill-yellow-400 text-yellow-400" />
                           <span className="font-semibold">
-                            {location.rating}
+                            {location.signalStrength || "N/A"} dBm
                           </span>
                           <span className="text-sm text-muted-foreground">
                             /5
@@ -522,30 +561,26 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                         <div className="flex items-center gap-1.5">
                           <Eye className="size-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">
-                            {location.visitCount} visits
+                            {location.noOfSatellites} satellites
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Clock className="size-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">
-                            {formatDate(location.createdAt)}
+                            {formatDate(location.date + " " + location.time)}
                           </span>
                         </div>
                       </div>
 
-                      {location.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-4">
-                          {location.tags.map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {getTagName(tag)}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        <Badge
+                          // key={"tag"}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {location.batteryType || "Battery info"}
+                        </Badge>
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <Button
@@ -554,16 +589,16 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                           className="flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleFavorite(location.id);
+                            toggleFavorite(location.vehicleNo);
                           }}
                         >
                           <Heart
                             className={cn(
                               "size-4 mr-2",
-                              location.isFavorite && "fill-red-500 text-red-500"
+                              true && "fill-red-500 text-red-500"
                             )}
                           />
-                          {location.isFavorite ? "Unfavorite" : "Favorite"}
+                          {true ? "Unfavorite" : "Favorite"}
                         </Button>
                         <Button
                           size="sm"
@@ -584,8 +619,8 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                           {isRequestingLocation
                             ? "Getting location..."
                             : isRouteActive
-                            ? "Clear route"
-                            : "Get directions"}
+                              ? "Clear route"
+                              : "Get directions"}
                         </Button>
                       </div>
                     </div>
@@ -593,133 +628,129 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                 );
               }
 
-              return (
-                <div
-                  key={location.id}
-                  className={cn(
-                    "group flex flex-col gap-2 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-accent/50",
-                    routeDestinationId === location.id &&
-                      "border-green-500 bg-green-500/10"
-                  )}
-                  onClick={() => handleLocationClick(location)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex size-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${category?.color}20` }}
-                    >
-                      <MapPin
-                        className="size-4"
-                        style={{ color: category?.color }}
-                      />
+
+              return <div
+                key={location.vehicleNo}
+                className={cn(
+                  "group flex flex-col gap-2 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-accent/50",
+                  routeDestinationId === location.vehicleNo &&
+                  "border-green-500 bg-green-500/10"
+                )}
+                onClick={() => handleVehicleClick(location)}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                    style={{ borderColor: `#D6D3D1`, borderWidth: "2px", borderRadius: 15 }}
+                  >
+                    <PiMapPinFill
+                      className="size-4"
+                      style={{ color: statusColor[location.status] }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-sm truncate">
+                        {location.vehicleNo}
+                      </h3>
+
+                      {routeDestinationId === location.vehicleNo && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] h-5 bg-green-500/20 text-green-600"
+                        >
+                          Route active
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-sm truncate">
-                          {location.name}
-                        </h3>
-                        {location.isFavorite && (
-                          <Heart className="size-3 fill-red-500 text-red-500 shrink-0" />
-                        )}
-                        {routeDestinationId === location.id && (
-                          <Badge
-                            variant="secondary"
-                            className="text-[10px] h-5 bg-green-500/20 text-green-600"
-                          >
-                            Route active
-                          </Badge>
-                        )}
+                    <p className="text-xs text-muted-foreground truncate">
+                      {formatDate(location.date + " " + location.time)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Star className="size-3 fill-yellow-400 text-yellow-400" />
+                    <span className="text-xs font-medium">
+                      {location.speed} km/h
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {userLocation && (
+                      <div className="flex items-center gap-1">
+                        {location.ignition ? <IoRocketSharp className="size-3.5" /> : <Rocket className="size-3.5" />}
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {/* {formatDistance(getDistance(location) || 0)} */}
+                          {location.ignition ? "Ignition ON" : "Ignition OFF"}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {location.address}
-                      </p>
+                    )}
+                    {mode === "recents" && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="size-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(location.date + " " + location.time)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Navigation className="size-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {location.noOfSatellites} satellites
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Star className="size-3 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs font-medium">
-                        {location.rating}
+                    <div className="flex items-center gap-1">
+                      <LiaSatelliteDishSolid className="size-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {location.noOfSatellites} satellites
                       </span>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {userLocation && (
-                        <div className="flex items-center gap-1">
-                          <Navigation className="size-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {formatDistance(getDistance(location) || 0)}
-                          </span>
-                        </div>
-                      )}
-                      {mode === "recents" && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="size-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(location.createdAt)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Eye className="size-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">
-                          {location.visitCount} {mode !== "recents" && "visits"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(location.id);
-                        }}
-                      >
-                        <Heart
-                          className={cn(
-                            "size-3.5",
-                            location.isFavorite && "fill-red-500 text-red-500"
-                          )}
-                        />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                  <div className="flex items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(location.vehicleNo);
+                      }}
+                    >
+                      <Heart
                         className={cn(
-                          "size-7",
-                          routeDestinationId === location.id && "text-green-500"
+                          "size-3.5",
+                          false && "fill-red-500 text-red-500"
                         )}
-                        onClick={(e) => handleGetDirections(e, location)}
-                      >
-                        <Route className="size-3.5" />
-                      </Button>
-                    </div>
-                  </div>
+                      />
+                      <Heart className="size-3 fill-red-500 text-red-500 shrink-0" />
 
-                  {location.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {location.tags.slice(0, 3).map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="text-[10px] h-5"
-                        >
-                          {getTagName(tag)}
-                        </Badge>
-                      ))}
-                      {location.tags.length > 3 && (
-                        <Badge variant="outline" className="text-[10px] h-5">
-                          +{location.tags.length - 3}
-                        </Badge>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "size-7",
+                        routeDestinationId === location.vehicleNo && "text-green-500"
                       )}
-                    </div>
-                  )}
+                      onClick={(e) => handleGetDirections(e, location)}
+                    >
+                      <Route className="size-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              );
-            })
-          )}
+
+                <Badge
+                  // key={tag}
+                  variant="secondary"
+                  className="text-[10px] h-5"
+                >
+                  {location.status}
+                </Badge>
+              </div>
+            })}
+
+
         </div>
       </div>
     </div>

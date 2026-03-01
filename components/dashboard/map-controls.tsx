@@ -144,6 +144,7 @@ export function MapControls() {
               <Layers className="size-4" />
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end" className="w-48">
             {mapStyles.map((style) => {
               const Icon = style.icon;
@@ -166,19 +167,6 @@ export function MapControls() {
           </DropdownMenuContent>
         </DropdownMenu>
         <ThemeToggle className="bg-background! size-11 shadow-lg" />
-        <Button
-          variant="outline"
-          size="icon"
-          className="bg-background! size-11 shadow-lg"
-          asChild
-        >
-          <Link
-            href="https://github.com/ln-dev7/square-ui/tree/master/templates/maps"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-          </Link>
-        </Button>
       </div>
 
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
@@ -198,6 +186,7 @@ export function MapControls() {
         >
           <Compass className="size-4" />
         </Button>
+
         <div className="flex flex-col rounded-lg border bg-background! shadow-lg overflow-hidden">
           <Button
             variant="ghost"
@@ -207,6 +196,7 @@ export function MapControls() {
           >
             <Plus className="size-4" />
           </Button>
+
           <Button
             variant="ghost"
             size="icon"
