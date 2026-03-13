@@ -88,7 +88,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.87 0.00 0);
+  --primary: oklch(0.87 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -141,7 +141,9 @@
   padding: 0 !important;
   border-radius: 16px !important;
   overflow: hidden;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow:
+    0 10px 40px -10px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
 .location-hover-popup .maplibregl-popup-tip {
@@ -153,7 +155,7 @@
   min-width: 320px;
   max-width: 360px;
   z-index: 1000;
-  cursor: pointer!important;
+  cursor: pointer !important;
 }
 
 .location-popup .popup-header {
@@ -308,5 +310,84 @@
 }
 
 .dark .location-hover-popup .maplibregl-popup-content {
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  box-shadow:
+    0 10px 40px -10px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Vehicle tooltip styles */
+.vehicle-label {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  background: white;
+  padding: 2px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* hide label when tooltip visible */
+.vehicle-marker:hover .vehicle-label {
+  display: none;
+}
+
+.vehicle-tooltip {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  z-index: 10;
+}
+
+.vehicle-marker:hover .vehicle-tooltip {
+  display: block;
+}
+/* Vehicle tooltip styles end*/
+
+.vehicle-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+/* selected marker */
+.vehicle-selected .vehicle-icon {
+  transform: scale(1.6);
+  background: #2563eb;
+}
+
+/* glow pulse */
+.vehicle-selected .vehicle-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.4);
+
+  transform: translate(-50%, -50%);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.8);
+    opacity: 0;
+  }
 }

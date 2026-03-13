@@ -4222,8 +4222,15 @@ const locations: Location[] = [
 ];
 
 export const statusColor: { [key: string]: string } = {
-  RUNNING: "GREEN",
-  IDLE: "BLUE",
-  STOPPED: "ORANGE",
-  PARKED: "RED",
+  RUNNING: "text-green-500",
+  IDLE: "text-blue-500",
+  STOPPED: "text-orange-500",
+  PARKED: "text-red-500",
+};
+
+export const markerStatusColor: Record<string, string> = {
+  RUNNING: "#22c55e", // green
+  IDLE: "#3b82f6", // blue
+  STOPPED: "#f59e0b", // amber
+  PARKED: "#ef4444", // red
 };

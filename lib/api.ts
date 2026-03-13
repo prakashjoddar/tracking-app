@@ -1,14 +1,40 @@
 import { VehicleLocation } from "./types";
 
-export async function fetchVehicleLocations(): Promise<VehicleLocation[]> {
-  const res = await fetch("http://localhost:6003/locations", {
-    method: "GET",
-    cache: "no-store",
-  });
+import axios from "axios";
 
-  if (!res.ok) {
+const api = axios.create({
+  baseURL: "http://localhost:6004",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export async function fetchVehicleLocations(): Promise<VehicleLocation[]> {
+  try {
+    const response = await api.get<VehicleLocation[]>("/location");
+    return response.data;
+  } catch (error) {
     throw new Error("Failed to fetch vehicle locations");
   }
+}
 
-  return res.json();
+export async function fetchVehicleLocationHistory(
+  vehicleNo: string,
+  startDate: string,
+  endDate?: string,
+): Promise<VehicleLocation[]> {
+  try {
+    const response = await api.get<VehicleLocation[]>(
+      `/location/history/${vehicleNo}/${startDate}`,
+      {
+        params: {
+          ...(endDate && { endDate }),
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error("Failed to fetch vehicle locations");
+  }
 }

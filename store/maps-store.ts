@@ -64,6 +64,15 @@ interface MapsState {
   getFilteredLocations: () => VehicleLocation[];
   getFavoriteLocations: () => VehicleLocation[];
   getRecentLocations: () => VehicleLocation[];
+
+  followVehicleId: string | null;
+  setFollowVehicle: (vehicleId: string | null) => void;
+
+  hoverVehicleId: string | null;
+  setHoverVehicle: (id: string | null) => void;
+
+  autoFocus: boolean;
+  setAutoFocus: (value: boolean) => void;
 }
 
 export const useMapsStore = create<MapsState>((set, get) => ({
@@ -80,6 +89,18 @@ export const useMapsStore = create<MapsState>((set, get) => ({
   userLocation: null,
   routeDestinationId: null,
   isPanelVisible: true,
+
+  followVehicleId: null,
+  setFollowVehicle: (vehicleId) => set({ followVehicleId: vehicleId }),
+
+  hoverVehicleId: null,
+  setHoverVehicle: (id) => set({ hoverVehicleId: id }),
+
+  autoFocus: true,
+  setAutoFocus: (value) =>
+    set({
+      autoFocus: value,
+    }),
 
   setSelectedCategory: (categoryId) => {
     const state = get();

@@ -1,5 +1,6 @@
 export type VehicleLocation = {
   vehicleNo: string;
+  label: string;
   date: string;
   time: string;
   latitude: number;

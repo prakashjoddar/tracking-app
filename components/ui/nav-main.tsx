@@ -76,7 +76,7 @@ export function NavMain({
                         { name: "Trip", icon: <RiRoadMapLine className="size-4 mr-1" style={{ color: menuColors[6] }} /> },
                         { name: "Accounts", icon: <RiParentLine className="size-4 mr-1" style={{ color: menuColors[9] }} /> },
                         { name: "Sub Login", icon: <FaUsersCog className="size-4 mr-1" style={{ color: menuColors[8] }} /> },
-                    ].map((item) => <SidebarMenuItem>
+                    ].map((item) => <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
                             // isActive={selectedCategory === "all"}
                             // onClick={() => setSelectedCategory("all")}
