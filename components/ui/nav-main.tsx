@@ -24,6 +24,7 @@ import { ImStatsDots } from "react-icons/im";
 import { MdOutlineMessage } from "react-icons/md";
 import { RiDashboardLine, RiParentLine, RiRoadMapLine } from "react-icons/ri";
 import { BsFillGeoFill } from "react-icons/bs";
+import Link from "next/link";
 
 const menuColors = [
     "#ef4444",
@@ -66,24 +67,27 @@ export function NavMain({
             <SidebarGroupContent>
                 <SidebarMenu>
                     {[
-                        { name: "Dashboard", icon: <RiDashboardLine className="size-4 mr-1" style={{ color: menuColors[0] }} /> },
-                        { name: "Location History", icon: <Route className="size-4 mr-1" style={{ color: menuColors[1] }} /> },
-                        { name: "Vehicle Details", icon: <AiTwotoneCar className="size-4 mr-1" style={{ color: menuColors[2] }} /> },
-                        { name: "Alerts", icon: <LucideBellRing className="size-4 mr-1" style={{ color: menuColors[3] }} /> },
-                        { name: "Messages", icon: <MdOutlineMessage className="size-4 mr-1" style={{ color: menuColors[4] }} /> },
-                        { name: "Reports", icon: <ImStatsDots className="size-4 mr-1" style={{ color: menuColors[5] }} /> },
-                        { name: "Geo Fence", icon: <BsFillGeoFill className="size-4 mr-1" style={{ color: menuColors[7] }} /> },
-                        { name: "Trip", icon: <RiRoadMapLine className="size-4 mr-1" style={{ color: menuColors[6] }} /> },
-                        { name: "Accounts", icon: <RiParentLine className="size-4 mr-1" style={{ color: menuColors[9] }} /> },
-                        { name: "Sub Login", icon: <FaUsersCog className="size-4 mr-1" style={{ color: menuColors[8] }} /> },
+                        { name: "Dashboard", icon: <RiDashboardLine className="size-4 mr-1" style={{ color: menuColors[0] }} />, url: "/" },
+                        { name: "Location History", icon: <Route className="size-4 mr-1" style={{ color: menuColors[1] }} />, url: "/location-history" },
+                        { name: "Vehicle Details", icon: <AiTwotoneCar className="size-4 mr-1" style={{ color: menuColors[2] }} />, url: "/vehicle" },
+                        { name: "Alerts", icon: <LucideBellRing className="size-4 mr-1" style={{ color: menuColors[3] }} />, url: "/alert" },
+                        { name: "Messages", icon: <MdOutlineMessage className="size-4 mr-1" style={{ color: menuColors[4] }} />, url: "/message" },
+                        { name: "Reports", icon: <ImStatsDots className="size-4 mr-1" style={{ color: menuColors[5] }} />, url: "/report" },
+
+                        { name: "Geo Fence", icon: <BsFillGeoFill className="size-4 mr-1" style={{ color: menuColors[7] }} />, url: "/" },
+                        { name: "Trips", icon: <RiRoadMapLine className="size-4 mr-1" style={{ color: menuColors[6] }} />, url: "/trip" },
+                        { name: "Accounts", icon: <RiParentLine className="size-4 mr-1" style={{ color: menuColors[9] }} />, url: "/" },
+                        { name: "Sub Login", icon: <FaUsersCog className="size-4 mr-1" style={{ color: menuColors[8] }} />, url: "/" },
                     ].map((item) => <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
                             // isActive={selectedCategory === "all"}
                             // onClick={() => setSelectedCategory("all")}
-                            className="h-7"
+                            asChild className="h-7"
                         >
-                            {item.icon}
-                            <span className="text-sm" >{item.name}</span>
+                            <Link href={item.url}>
+                                {item.icon}
+                                <span className="text-sm" >{item.name}</span>
+                            </Link>
                         </SidebarMenuButton>
                         {/* <SidebarMenuBadge>""</SidebarMenuBadge> */}
                     </SidebarMenuItem>)}

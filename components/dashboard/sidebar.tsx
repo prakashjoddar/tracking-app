@@ -17,7 +17,8 @@ import {
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
+  SidebarTrigger
 } from "@/components/ui/sidebar";
 import { categories } from "@/mock-data/locations";
 import { useMapsStore } from "@/store/maps-store";
@@ -45,10 +46,11 @@ import {
   Settings2
 } from "lucide-react";
 import { useVehicleStore } from "@/store/location-store";
+import { useState } from "react";
 
 const navItems = [
   { id: "all", title: "All Locations", icon: MapPin, href: "/" },
-  { id: "favorites", title: "Favorites", icon: Heart, href: "/favorites" },
+  { id: "favorites", title: "Favorites", icon: Heart, href: "/favorite" },
 ];
 
 const iconMap: Record<
@@ -76,6 +78,8 @@ export function LocationsSidebar({
     getRecentLocations,
   } = useMapsStore();
 
+  const [isOpenSidebar, setIsOpenSidebar] = useState(true);
+
   const vehicles = useVehicleStore((s) => s.vehicles)
 
   const favoriteCount = 0;
@@ -88,31 +92,41 @@ export function LocationsSidebar({
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="px-2.5 py-3">
+      <SidebarHeader className="px-2.5 py-3 flex flex-row items-center justify-between">
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2.5 w-full hover:bg-sidebar-accent rounded-md p-1 -m-1 transition-colors shrink-0">
+            <button className="flex items-center gap-2.5 hover:bg-sidebar-accent rounded-md p-1 -m-1 transition-colors shrink-0">
+
               <div className="flex size-7 items-center justify-center rounded-lg bg-foreground text-background shrink-0">
                 <MapPin className="size-4" />
               </div>
+
               <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
                 <span className="text-sm font-medium">Admin User</span>
                 <ChevronsUpDown className="size-3 text-muted-foreground" />
               </div>
+
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
+
             <DropdownMenuItem>
               <Settings className="size-4" />
               <span>Settings</span>
             </DropdownMenuItem>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuItem className="text-destructive focus:text-destructive">
               <LogOut className="size-4" />
               <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
+
         </DropdownMenu>
+
+        <SidebarTrigger className="me-0 size-7" onClick={() => setIsOpenSidebar(val => !val)} />
 
       </SidebarHeader>
 

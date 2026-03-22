@@ -14,7 +14,8 @@ export async function fetchVehicleLocations(): Promise<VehicleLocation[]> {
     const response = await api.get<VehicleLocation[]>("/location");
     return response.data;
   } catch (error) {
-    throw new Error("Failed to fetch vehicle locations");
+    // throw new Error("Failed to fetch vehicle locations: " + error);
+    return [];
   }
 }
 
@@ -35,6 +36,7 @@ export async function fetchVehicleLocationHistory(
 
     return response.data;
   } catch (error) {
-    throw new Error("Failed to fetch vehicle locations");
+    // throw new Error("Failed to fetch vehicle locations: " + error);
+    return [];
   }
 }

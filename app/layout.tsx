@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Maps - Square UI",
-  description: "A beautiful map explorer with interactive maps by Square UI",
+  title: "Tracking Toe",
+  description: "Vehicle tracking system",
 };
 
 export default function RootLayout({
@@ -24,10 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
-      >
+    <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans h-full overflow-hidden`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -56,6 +56,7 @@ import { FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import { MdOutlineSpeed } from "react-icons/md";
 import { BsSpeedometer2 } from "react-icons/bs";
 import { VehicleCard } from "./vehicle-card";
+import Link from "next/link";
 
 
 type PanelMode = "all" | "favorites" | "recents";
@@ -151,7 +152,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
   const vehicles = useVehicleStore((s) => s.vehicles)
   const setLocationHistory = useVehicleStore((s) => s.setLocationHistory);
   const nodeRef = React.useRef(null);
-  const [isOpenSidebar, setIsOpenSidebar] = useState(true);
   const [isSidebarOnLeft, setIsSidebarOnLeft] = useState(true);
 
   const followVehicleId = useMapsStore((s) => s.followVehicleId)
@@ -475,7 +475,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
             {isSidebarOnLeft ? <FiChevronRight className="size-6" /> : <FiChevronLeft className="size-6" />}
           </Button>
 
-          <SidebarTrigger className="size-7" onClick={() => setIsOpenSidebar(val => !val)} />
         </div>
 
         <div className="p-2 pt-1 border-b">
@@ -870,17 +869,24 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
                         />
 
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "size-8",
-                          routeDestinationId === location.vehicleNo && "text-green-500"
-                        )}
-                        onClick={(e) => handleGetVehicleLocationHistory(e, location)}
-                      >
-                        <Route className="size-3.5" />
-                      </Button>
+
+                      <Link href={"/location-history"}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "size-8",
+                            routeDestinationId === location.vehicleNo && "text-green-500"
+                          )}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleGetVehicleLocationHistory(e, location)
+                          }}
+                        >
+                          <Route className="size-3.5" />
+                        </Button>
+                      </Link>
+
                     </div>
                   </div>
 
