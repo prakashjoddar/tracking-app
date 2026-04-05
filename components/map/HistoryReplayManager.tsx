@@ -93,4 +93,15 @@ export class HistoryReplayManager {
 
         this.map.panTo(pos)
     }
+
+    clear() {
+        if (this.polyline) {
+            this.polyline.setMap(null)
+            this.polyline = null
+        }
+        if (this.marker) {
+            this.marker.setMap(null)
+            this.marker = null
+        }
+    }
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { useFleetMapCamera } from "@/hooks/useFleetMapCamera";
-import { Stop, VehicleLocation } from "@/lib/types";
+import { VehicleLocation } from "@/lib/types";
 import { useHistoryStore } from "@/store/history-store";
 import { useVehicleStore } from "@/store/location-store";
 import { useMapsStore } from "@/store/maps-store";
 import { useTripStore } from "@/store/trip-store";
+import { useGeofenceStore } from "@/store/geofence-store";
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -14,8 +15,10 @@ import { HistoryReplayManager } from "./HistoryReplayManager";
 import { RouteManager } from "./RouteManager";
 import { VehicleMarkerManager } from "./VehicleMarkerManager";
 import { StopMarkerManager } from "./StopMarkerManager";
+import { GeofenceMarkerManager } from "./GeofenceMarkerManager";
 import { PlaceSearch } from "./PlaceSearch";
 import { RouteSlider } from "./RouteSlider";
+;
 
 export function GoogleMapView() {
     const vehicles = useVehicleStore((s) => s.vehicles);
@@ -37,7 +40,8 @@ export function GoogleMapView() {
     const historyManagerRef = React.useRef<HistoryReplayManager | null>(null)
     const routeManagerRef = React.useRef<RouteManager | null>(null)
     const stopMarkerManagerRef = React.useRef<StopMarkerManager | null>(null)
-    const routeDrawnRef = React.useRef<boolean>(false)
+    const geofenceMarkerManagerRef = React.useRef<GeofenceMarkerManager | null>(null)
+    const lastWaypointRef = React.useRef<string | null>(null)
 
     const [routeProgress, setRouteProgress] = useState<number>(1)  // default full route
 
@@ -46,13 +50,22 @@ export function GoogleMapView() {
 
     const showMap = useTripStore(s => s.showMapOrStopForm)
     const resetTrip = useTripStore(s => s.resetTrip)
+    const trips = useTripStore(s => s.trips)
+    const selectedTripId = useTripStore(s => s.selectedTripId)
+    const editingTripId = useTripStore(s => s.editingTripId)
 
     const [mapReady, setMapReady] = useState(false)
     const pathname = usePathname()
 
     // 3. Enable click placement when map is shown on stops page
     const setPendingLatLng = useTripStore(s => s.setPendingLatLng)
-    const isStopsPage = pathname === "/trip/stops"
+    const setGeofencePendingLatLng = useGeofenceStore(s => s.setPendingLatLng)
+
+    const isDashboardPage = pathname === "/"
+    const isLocationHistoryPage = pathname === "/location-history"
+    const isStopsPage = pathname === "/trip/stop"
+    const isTripPage = pathname.startsWith("/trip")
+    const isGeofencePage = pathname === "/geofence"
 
     const mapOptions = React.useMemo(() => ({
         mapId: process.env.NEXT_PUBLIC_GOOGLE_MAP_ID,
@@ -96,6 +109,7 @@ export function GoogleMapView() {
         historyManagerRef.current = new HistoryReplayManager(map)
         routeManagerRef.current = new RouteManager(map)
         stopMarkerManagerRef.current = new StopMarkerManager(map)
+        geofenceMarkerManagerRef.current = new GeofenceMarkerManager(map)
 
         setMapReady(true);
 
@@ -104,34 +118,6 @@ export function GoogleMapView() {
         });
     };
 
-    const shouldRecenterMap = (
-        map: google.maps.Map,
-        lat: number,
-        lng: number
-    ) => {
-        const bounds = map.getBounds();
-        if (!bounds) return true;
-
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-
-        const latRange = ne.lat() - sw.lat();
-        const lngRange = ne.lng() - sw.lng();
-
-        // safe zone (center 40%)
-        const safeLatMin = sw.lat() + latRange * 0.3;
-        const safeLatMax = ne.lat() - latRange * 0.3;
-
-        const safeLngMin = sw.lng() + lngRange * 0.3;
-        const safeLngMax = ne.lng() - lngRange * 0.3;
-
-        return (
-            lat < safeLatMin ||
-            lat > safeLatMax ||
-            lng < safeLngMin ||
-            lng > safeLngMax
-        );
-    };
 
     React.useEffect(() => {
         vehicles.forEach((v) => {
@@ -141,12 +127,16 @@ export function GoogleMapView() {
 
     React.useEffect(() => {
         const interval = setInterval(() => {
+            if (!isDashboardPage) {
+                markerManagerRef.current?.updateVehicles([]);
+                return;
+            }
             const bufferedVehicles = Array.from(vehicleBufferRef.current.values());
             markerManagerRef.current?.updateVehicles(bufferedVehicles);
         }, 800);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [isDashboardPage]);
 
     React.useEffect(() => {
         fitAllVehicles();
@@ -159,56 +149,64 @@ export function GoogleMapView() {
     }, [selectedLocationId]);
 
     React.useEffect(() => {
-
         if (!historyManagerRef.current) return
+        if (!isLocationHistoryPage) {
+            historyManagerRef.current.clear()
+            return
+        }
         if (historyPoints.length === 0) return
-
         historyManagerRef.current.loadRoute(historyPoints)
-
-    }, [historyPoints])
+    }, [historyPoints, isLocationHistoryPage])
 
     React.useEffect(() => {
-
         if (!historyManagerRef.current) return
+        if (!isLocationHistoryPage) return
         if (!historyPoints[historyIndex]) return
-
         historyManagerRef.current.moveTo(historyPoints[historyIndex])
-
-    }, [historyIndex])
+    }, [historyIndex, isLocationHistoryPage])
 
     useEffect(() => {
         if (!showMap) return
         if (!routeManagerRef.current) return
         if (!stopMarkerManagerRef.current) return
 
-        const waypoint = "ko{_CgtgaNN{KmGyLmFoU_Hcm@oJw|@sPuW}\\qOoYalAo`@uwB"
+        const activeTripId = selectedTripId ?? editingTripId
+        const activeTrip = trips.find(t => t.id === activeTripId)
+        const waypoint = activeTrip?.waypoint ?? null
 
-        // 👇 only draw route once — returning from form should not redraw
-        if (!routeDrawnRef.current) {
+        // Redraw if waypoint changed (e.g. after Initialize) or not yet drawn
+        if (waypoint && waypoint !== lastWaypointRef.current) {
             routeManagerRef.current.drawEncodedRoute(waypoint)
             stopMarkerManagerRef.current.setPath(waypoint)
-            routeDrawnRef.current = true
+            lastWaypointRef.current = waypoint
         }
 
         if (isStopsPage) {
-            stopMarkerManagerRef.current.enablePlacementMode((lat, lng, snapToRoute) => {
-                const newStop: Stop = {
-                    id: crypto.randomUUID(),
-                    name: `Stop ${useTripStore.getState().stops.length + 1}`,
-                    latitude: lat,
-                    longitude: lng,
-                    type: "point",
-                    enabled: true,
-                    snapToRoute,
-                }
-                useTripStore.getState().addStop(newStop)
+            stopMarkerManagerRef.current.enablePlacementMode((lat, lng) => {
                 setPendingLatLng({ lat, lng })
+                useTripStore.getState().setShowMapOrStopForm(false)
             })
         } else {
             stopMarkerManagerRef.current.disablePlacementMode()
         }
 
-    }, [showMap, isStopsPage, mapReady])
+    }, [showMap, isStopsPage, mapReady, selectedTripId, editingTripId, trips])
+
+    // ── Effect 2: Geofence only (NO showMap guard) ────────────────────────────────
+    useEffect(() => {
+        if (!mapReady) return                              // 👈 only guard we need
+        if (!geofenceMarkerManagerRef.current) return
+
+        if (isGeofencePage) {
+            geofenceMarkerManagerRef.current.enablePlacementMode((lat, lng) => {
+                setGeofencePendingLatLng({ lat, lng })
+            })
+        } else {
+            geofenceMarkerManagerRef.current.disablePlacementMode()
+        }
+
+    }, [isGeofencePage, mapReady])
+
     const stops = useTripStore(s => s.stops)
 
     // 4. Sync confirmed stops to map
@@ -217,21 +215,65 @@ export function GoogleMapView() {
         stopMarkerManagerRef.current.syncStops(stops)
     }, [stops])
 
+    const geofences = useGeofenceStore(s => s.geofences)
+    const geofenceEditingId = useGeofenceStore(s => s.editingGeofenceId)
+    const geofencePendingLatLng = useGeofenceStore(s => s.pendingLatLng)
+    const geofencePendingRadius = useGeofenceStore(s => s.pendingRadius)
+    const geofencePendingColor = useGeofenceStore(s => s.pendingColor)
+
+    // 5. Sync geofences to map — only on geofence page
+    useEffect(() => {
+        if (!geofenceMarkerManagerRef.current) return
+        if (!isGeofencePage) {
+            geofenceMarkerManagerRef.current.clearAll()
+            return
+        }
+        geofenceMarkerManagerRef.current.syncGeofences(geofences, geofenceEditingId)
+
+        // fit map to all geofences only when none is selected
+        if (geofences.length > 0 && !geofenceEditingId) {
+            geofenceMarkerManagerRef.current.fitToGeofences(geofences)
+        }
+    }, [geofences, geofenceEditingId, mapReady, isGeofencePage])
+
+    // 5b. Zoom in to selected geofence so its circle is visible
+    useEffect(() => {
+        if (!mapReady || !isGeofencePage || !geofenceEditingId) return
+        const gf = geofences.find(g => g.id === geofenceEditingId)
+        if (gf) {
+            geofenceMarkerManagerRef.current?.zoomToGeofence(gf.latitude, gf.longitude, gf.radius)
+        }
+    }, [geofenceEditingId, isGeofencePage, mapReady])
+
+    // 6. Sync pending geofence preview
+    useEffect(() => {
+        if (!geofenceMarkerManagerRef.current) return
+        if (geofencePendingLatLng) {
+            geofenceMarkerManagerRef.current.updatePendingLocation(
+                geofencePendingLatLng.lat,
+                geofencePendingLatLng.lng,
+                geofencePendingRadius,
+                geofencePendingColor
+            )
+        } else {
+            geofenceMarkerManagerRef.current.clearPending()
+        }
+    }, [geofencePendingLatLng, geofencePendingRadius, geofencePendingColor, mapReady])  // ✅ added mapReady
+
     // 5. Cleanup on unmount
     useEffect(() => {
         return () => {
             stopMarkerManagerRef.current?.clearAll()
+            geofenceMarkerManagerRef.current?.clearAll()
         }
     }, [])
 
     useEffect(() => {
-        const isOnTrips = pathname.startsWith("/trip")
-
-        if (!isOnTrips && routeManagerRef.current) {
+        if (!isTripPage && routeManagerRef.current) {
             routeManagerRef.current.clearRoute()
             resetTrip()
         }
-    }, [pathname])
+    }, [isTripPage])
 
     useFleetMapCamera({
         map: mapRef.current,

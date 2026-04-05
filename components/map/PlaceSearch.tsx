@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Search, X } from "lucide-react"
 import { useTripStore } from "@/store/trip-store"
 import { Stop } from "@/lib/types"
+import { saveStop } from "@/lib/api"
 
 type Suggestion = {
     placeId: string
@@ -20,9 +21,10 @@ export function PlaceSearch() {
     const inputRef = useRef<HTMLInputElement>(null)
     const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
 
-    const addStop = useTripStore(s => s.addStop)
     const setPendingLatLng = useTripStore(s => s.setPendingLatLng)
     const snapToRoute = useTripStore.getState().snapToRoute
+    const selectedTripId = useTripStore.getState().selectedTripId
+    const addStop = useTripStore.getState().addStop
 
 
     const getSessionToken = (): google.maps.places.AutocompleteSessionToken => {
@@ -87,17 +89,22 @@ export function PlaceSearch() {
             const lng: number | undefined = place.location?.lng()
             if (lat == null || lng == null) return
 
-            const newStop: Stop = {
-                id: crypto.randomUUID(),
+            const state = useTripStore.getState();
+            const tripId = state.selectedTripId ?? state.editingTripId ?? "";
+
+            const stopPayload = {
                 name: place.displayName ?? suggestion.mainText,
                 latitude: lat,
                 longitude: lng,
-                type: "point",
-                enabled: true,
-                snapToRoute
+                type: "PICK_DROP" as const,
+                enable: true,
+                snapToRoute,
+                tripId,
+                studentId: []
             }
 
-            addStop(newStop)
+            const savedStop = await saveStop(stopPayload);
+            addStop({ ...savedStop, snapToRoute });
             setPendingLatLng({ lat, lng })
             setQuery("")
 

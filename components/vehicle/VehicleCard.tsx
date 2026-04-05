@@ -2,8 +2,9 @@
 
 import { Vehicle } from "@/lib/types"
 import { useVehicleManageStore } from "@/store/vehicle-store"
-import axios from "axios"
+import { api } from "@/lib/api"
 import { Bus, Cpu, Pencil, SatelliteDish, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 type VehicleCardProps = {
     vehicle: Vehicle
@@ -25,11 +26,16 @@ export function VehicleCard({ vehicle, isEditing, onEdit }: VehicleCardProps) {
     }
 
     const handleDelete = async (): Promise<void> => {
+        if (!confirm("Are you sure you want to delete this vehicle?")) return
+
         try {
-            await axios.delete(`http://localhost:6004/vehicle/${vehicle.id}`)
-            deleteVehicle(vehicle.id)   // remove from store only after API succeeds
-        } catch (e) {
+            await api.delete(`/vehicle/${vehicle.id}`)
+            deleteVehicle(vehicle.id)
+            toast.success("Vehicle deleted successfully")
+        } catch (e: any) {
             console.error("Delete failed:", e)
+            const msg = e.response?.data?.message || (typeof e.response?.data === 'string' ? e.response.data : null) || e.message || "Failed to delete vehicle"
+            toast.error(msg)
         }
     }
 

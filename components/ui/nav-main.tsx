@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, LucideBellRing, Route, type LucideIcon } from "lucide-react";
+import { ChevronRight, GraduationCap, LucideBellRing, Route, type LucideIcon } from "lucide-react";
 
 import {
     Collapsible,
@@ -18,13 +18,13 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 import { AiTwotoneCar } from "react-icons/ai";
+import { BsFillGeoFill } from "react-icons/bs";
 import { FaUsersCog } from "react-icons/fa";
 import { ImStatsDots } from "react-icons/im";
 import { MdOutlineMessage } from "react-icons/md";
 import { RiDashboardLine, RiParentLine, RiRoadMapLine } from "react-icons/ri";
-import { BsFillGeoFill } from "react-icons/bs";
-import Link from "next/link";
 
 const menuColors = [
     "#ef4444",
@@ -74,10 +74,12 @@ export function NavMain({
                         { name: "Messages", icon: <MdOutlineMessage className="size-4 mr-1" style={{ color: menuColors[4] }} />, url: "/message" },
                         { name: "Reports", icon: <ImStatsDots className="size-4 mr-1" style={{ color: menuColors[5] }} />, url: "/report" },
 
-                        { name: "Geo Fence", icon: <BsFillGeoFill className="size-4 mr-1" style={{ color: menuColors[7] }} />, url: "/" },
+                        { name: "Geo Fence", icon: <BsFillGeoFill className="size-4 mr-1" style={{ color: menuColors[7] }} />, url: "/geofence" },
                         { name: "Trips", icon: <RiRoadMapLine className="size-4 mr-1" style={{ color: menuColors[6] }} />, url: "/trip" },
-                        { name: "Accounts", icon: <RiParentLine className="size-4 mr-1" style={{ color: menuColors[9] }} />, url: "/" },
-                        { name: "Sub Login", icon: <FaUsersCog className="size-4 mr-1" style={{ color: menuColors[8] }} />, url: "/" },
+                        { name: "Driver & Supervisor", icon: <RiParentLine className="size-4 mr-1" style={{ color: menuColors[9] }} />, url: "/driver-supervisor" },
+                        { name: "Students", icon: <GraduationCap className="size-4 mr-1" style={{ color: menuColors[11] }} />, url: "/student" },
+                        { name: "Sub Login", icon: <FaUsersCog className="size-4 mr-1" style={{ color: menuColors[8] }} />, url: "/user" },
+                        { name: "Exchange Vehicles", icon: <FaUsersCog className="size-4 mr-1" style={{ color: menuColors[8] }} />, url: "/vehicle-replacement" },
                     ].map((item) => <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
                             // isActive={selectedCategory === "all"}

@@ -6,7 +6,8 @@ import { Vehicle, RfidType } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bus, Cpu, FileCheck, Phone, Save, Satellite, X } from "lucide-react"
-import axios from "axios"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
 
 type Mode = "add" | "edit"
 
@@ -21,6 +22,7 @@ const EMPTY: Omit<Vehicle, "id"> = {
     rechargeExpiry: "", certificateExpiry: "",
     deviceManufacturer: "", deviceModelNumber: "",
     vehicleManufacturer: "", vehicleModelNumber: "",
+    checkImeiExist: false,
 }
 
 type FieldError = Partial<Record<keyof Omit<Vehicle, "id">, string>>
@@ -43,10 +45,14 @@ type FormFieldProps = {
     label: string
     error?: string
     children: React.ReactNode
+    extra?: React.ReactNode
 }
-const FormField = ({ label, error, children }: FormFieldProps) => (
+const FormField = ({ label, error, children, extra }: FormFieldProps) => (
     <div className="space-y-1">
-        <label className="text-xs font-medium text-gray-600">{label}</label>
+        <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-gray-600">{label}</label>
+            {extra}
+        </div>
         {children}
         {error && <p className="text-[11px] text-red-500">{error}</p>}
     </div>
@@ -62,7 +68,7 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
         const vehicle = vehicles.find(v => v.id === editingVehicleId) ?? null
         if (mode === "edit" && vehicle) {
             const { id, ...rest } = vehicle
-            return rest
+            return { ...EMPTY, ...rest }
         }
         return EMPTY
     }
@@ -76,7 +82,7 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
         const vehicle = vehicles.find(v => v.id === editingVehicleId) ?? null
         if (mode === "edit" && vehicle) {
             const { id, ...rest } = vehicle
-            setForm(rest)
+            setForm({ ...EMPTY, ...rest })
         } else {
             setForm(EMPTY)
         }
@@ -97,24 +103,52 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
         return Object.keys(e).length === 0
     }
 
-    const handleSave = async (): Promise<void> => {
+    const handleSave = async (stayOpen: boolean = false): Promise<void> => {
         if (!validate()) return
 
         try {
             setSaving(true)
 
+            const payload: any = {
+                id: editingVehicleId || undefined,
+                imei: form.imei,
+                number: form.number,
+                name: form.name,
+                description: form.description,
+                rfidType: form.rfidType,
+                simNumber: form.simNumber,
+                rechargeExpiry: form.rechargeExpiry || null,
+                certificateExpiry: form.certificateExpiry || null,
+                deviceManufacturer: form.deviceManufacturer,
+                deviceModelNumber: form.deviceModelNumber,
+                vehicleManufacturer: form.vehicleManufacturer,
+                vehicleModelNumber: form.vehicleModelNumber,
+                checkImeiExist: Boolean(form.checkImeiExist)
+            };
+            
+            console.log("CRITICAL DEBUG - Sending this to API:", JSON.stringify(payload, null, 2));
+
+            const res = await api.post<Vehicle>("/vehicle", payload);
+            
+            // Re-fetch the entire list from the server to ensure we have the most accurate "response" data
+            await useVehicleManageStore.getState().fetchVehicles()
+            
             if (mode === "edit" && editingVehicleId) {
-                const res = await axios.post<Vehicle>("http://localhost:6004/vehicle", { id: editingVehicleId, ...form })
-                updateVehicle(editingVehicleId, res.data)
                 setEditingVehicleId(null)
-            } else {
-                const res = await axios.post<Vehicle>("http://localhost:6004/vehicle", form)
-                addVehicle(res.data)
             }
 
-            onClose()
-        } catch (e) {
+            if (stayOpen) {
+                setForm(EMPTY)
+                setErrors({})
+                toast.success("Vehicle added successfully! Form cleared for next entry.")
+            } else {
+                toast.success(mode === "edit" ? "Vehicle updated successfully!" : "Vehicle added successfully!")
+                onClose()
+            }
+        } catch (e: any) {
             console.error("Save failed:", e)
+            const msg = e.response?.data?.message || (typeof e.response?.data === 'string' ? e.response.data : null) || e.message || "Failed to save vehicle"
+            toast.error(msg)
         } finally {
             setSaving(false)
         }
@@ -190,7 +224,21 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
                 </Section>
 
                 <Section icon={<Cpu size={13} />} title="Device Info">
-                    <FormField label="IMEI" error={errors.imei}>
+                    <FormField 
+                        label="IMEI" 
+                        error={errors.imei}
+                        extra={
+                            <label className="inline-flex items-center gap-2 cursor-pointer ml-auto">
+                                <input
+                                    type="checkbox"
+                                    checked={form.checkImeiExist}
+                                    onChange={e => set("checkImeiExist", e.target.checked)}
+                                    className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="text-[10px] text-gray-500 font-normal normal-case">Check IMEI exist</span>
+                            </label>
+                        }
+                    >
                         <Input
                             value={form.imei}
                             onChange={e => set("imei", e.target.value)}
@@ -267,14 +315,25 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
             <div className="shrink-0 px-6 py-4 border-t bg-gray-50 flex justify-end gap-2">
                 <button
                     onClick={onClose}
-                    className="px-4 py-2 text-sm rounded-lg border text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="px-4 py-2 text-sm font-medium rounded-lg border text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                     Cancel
                 </button>
+                
+                {mode === "add" && (
+                    <button
+                        onClick={() => handleSave(true)}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-blue-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-60"
+                    >
+                        Save & Add New
+                    </button>
+                )}
+
                 <button
-                    onClick={handleSave}
+                    onClick={() => handleSave(false)}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm active:scale-[0.98] transition-all disabled:opacity-60"
                 >
                     <Save size={14} />
                     {saving ? "Saving..." : mode === "edit" ? "Update" : "Add Vehicle"}

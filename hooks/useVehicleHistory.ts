@@ -7,7 +7,7 @@ export function useVehicleHistory(vehicleNo: string, date: string) {
   useEffect(() => {
     async function load() {
       const res = await fetch(
-        `http://localhost:6004/location/history/${vehicleNo}/${date}`,
+        `http://localhost:6003/location/history/${vehicleNo}/${date}`,
       );
 
       const data = await res.json();

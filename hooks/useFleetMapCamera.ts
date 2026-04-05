@@ -1,6 +1,5 @@
-import { useEffect } from "react";
 import { VehicleLocation } from "@/lib/types";
-import { log } from "console";
+import { useEffect } from "react";
 
 type Props = {
   map: google.maps.Map | null;

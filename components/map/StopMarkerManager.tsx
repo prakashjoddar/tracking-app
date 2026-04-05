@@ -1,3 +1,4 @@
+import { StopType } from "@/lib/types"
 import { useTripStore } from "@/store/trip-store"
 
 export class StopMarkerManager {
@@ -129,7 +130,18 @@ export class StopMarkerManager {
     }
 
     // ─── Confirmed stop markers ───────────────────────────────────────────────
-    syncStops(stops: { id: string; latitude: number; longitude: number, snapToRoute: boolean }[]) {
+    syncStops(stops: {
+        // id: string; latitude: number; longitude: number, name: string, snapToRoute: boolean
+        id: string;
+        name: string;
+        enable: boolean;
+        type: StopType;
+        latitude: number;
+        longitude: number;
+        studentId: number[];
+        tripId: string;
+        snapToRoute?: boolean;
+    }[]) {
         for (const [id, marker] of this.markers) {
             if (!stops.find(s => s.id === id)) {
                 marker.map = null
@@ -143,6 +155,8 @@ export class StopMarkerManager {
                 existing.map = null
                 this.markers.delete(stop.id)
             }
+
+            const content = this.buildMarkerContent(index + 1, stop.name)
 
             const pin = new google.maps.marker.PinElement({
                 background: "#2563eb",
@@ -170,6 +184,69 @@ export class StopMarkerManager {
 
             this.markers.set(stop.id, marker)
         })
+    }
+
+    // 👇 build marker with tooltip baked in
+    private buildMarkerContent(index: number, name: string): HTMLElement {
+        const wrapper = document.createElement("div")
+        wrapper.style.cssText = "position: relative; display: flex; flex-direction: column; align-items: center;"
+
+        // Tooltip
+        const tooltip = document.createElement("div")
+        tooltip.textContent = name || `Stop ${index}`
+        tooltip.style.cssText = `
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.75);
+        color: white;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    `
+        // small caret
+        const caret = document.createElement("div")
+        caret.style.cssText = `
+        position: absolute;
+        bottom: calc(100% + 4px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top-color: rgba(0,0,0,0.75);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    `
+
+        // Pin element
+        const pin = new google.maps.marker.PinElement({
+            background: "#2563eb",
+            borderColor: "#1d4ed8",
+            glyph: String(index),
+            glyphColor: "#fff",
+        })
+
+        wrapper.appendChild(tooltip)
+        wrapper.appendChild(caret)
+        wrapper.appendChild(pin.element)
+
+        // hover listeners on the wrapper
+        wrapper.addEventListener("mouseover", () => {
+            tooltip.style.opacity = "1"
+            caret.style.opacity = "1"
+        })
+        wrapper.addEventListener("mouseout", () => {
+            tooltip.style.opacity = "0"
+            caret.style.opacity = "0"
+        })
+
+        return wrapper
     }
 
     clearPendingMarker() {

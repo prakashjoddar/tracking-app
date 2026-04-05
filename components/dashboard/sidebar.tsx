@@ -20,14 +20,15 @@ import {
   SidebarMenuItem,
   SidebarTrigger
 } from "@/components/ui/sidebar";
+import { logoutAction } from "@/lib/auth-actions";
 import { categories } from "@/mock-data/locations";
 import { useMapsStore } from "@/store/maps-store";
 import {
   Bed,
   ChevronsUpDown,
-  Clock,
   Coffee,
   Dumbbell,
+  FileBarChart2,
   Heart,
   Landmark,
   LogOut,
@@ -36,17 +37,19 @@ import {
   ShoppingBag,
   Trees,
   Utensils,
-  Wine,
+  Wine
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { NavMain } from "../ui/nav-main";
 
-import {
-  Settings2
-} from "lucide-react";
+import { fetchCurrentUser } from "@/lib/api";
+import { UserRequestResponse } from "@/lib/types";
 import { useVehicleStore } from "@/store/location-store";
-import { useState } from "react";
+import {
+  UserCircle
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { id: "all", title: "All Locations", icon: MapPin, href: "/" },
@@ -79,6 +82,38 @@ export function LocationsSidebar({
   } = useMapsStore();
 
   const [isOpenSidebar, setIsOpenSidebar] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserRequestResponse | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchCurrentUser().then(setCurrentUser).catch(() => { })
+  }, [])
+
+  const displayName = currentUser
+    ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
+    : "Loading..."
+
+  const initials = currentUser
+    ? `${currentUser.firstName?.[0] ?? ""}${currentUser.lastName?.[0] ?? ""}`.toUpperCase()
+    : "?"
+
+  const typeColors: Record<string, string> = {
+    SUPER: "bg-red-100 text-red-700",
+    ORG: "bg-blue-100 text-blue-700",
+    SUB_ORG: "bg-purple-100 text-purple-700",
+    DRIVER: "bg-green-100 text-green-700",
+    SUPERVISOR: "bg-orange-100 text-orange-700",
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logoutAction();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      router.push("/login");
+    }
+  };
 
   const vehicles = useVehicleStore((s) => s.vehicles)
 
@@ -91,42 +126,79 @@ export function LocationsSidebar({
   // };
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="px-2.5 py-3 flex flex-row items-center justify-between">
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="px-2.5 py-3 flex flex-row items-center justify-between group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2.5 hover:bg-sidebar-accent rounded-md p-1 -m-1 transition-colors shrink-0">
+        <div className="group-data-[collapsible=icon]:hidden min-w-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2.5 hover:bg-sidebar-accent rounded-md p-1.5 -m-1 transition-colors shrink-0 min-w-0">
 
-              <div className="flex size-7 items-center justify-center rounded-lg bg-foreground text-background shrink-0">
-                <MapPin className="size-4" />
+                <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background shrink-0 text-xs font-bold">
+                  {initials}
+                </div>
+
+                <div className="flex flex-col items-start min-w-0 group-data-[collapsible=icon]:hidden">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold leading-tight truncate max-w-[120px]">{displayName}</span>
+                    <ChevronsUpDown className="size-3 text-muted-foreground shrink-0" />
+                  </div>
+                  {currentUser?.type && (
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none mt-0.5 ${typeColors[currentUser.type] ?? "bg-gray-100 text-gray-600"}`}>
+                      {currentUser.type.replace("_", " ")}
+                    </span>
+                  )}
+                </div>
+
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+
+              {/* User info header */}
+              <div className="px-3 py-2.5 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-foreground text-background text-sm font-bold shrink-0">
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{displayName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
+                    {currentUser?.type && (
+                      <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none mt-1 ${typeColors[currentUser.type] ?? "bg-gray-100 text-gray-600"}`}>
+                        {currentUser.type.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium">Admin User</span>
-                <ChevronsUpDown className="size-3 text-muted-foreground" />
-              </div>
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <UserCircle className="size-4" />
+                  <span>Profile</span>
+                </Link>
+              </DropdownMenuItem>
 
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem>
+                <Settings className="size-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
 
-            <DropdownMenuItem>
-              <Settings className="size-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
+              <DropdownMenuSeparator />
 
-            <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive cursor-pointer"
+                onClick={handleLogout}
+              >
+                <LogOut className="size-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
 
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
-              <LogOut className="size-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-        </DropdownMenu>
-
-        <SidebarTrigger className="me-0 size-7" onClick={() => setIsOpenSidebar(val => !val)} />
+        <SidebarTrigger className="me-0 size-7 shrink-0" onClick={() => setIsOpenSidebar(val => !val)} />
 
       </SidebarHeader>
 
@@ -162,7 +234,7 @@ export function LocationsSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="p-0 mt-4">
+        {/* <SidebarGroup className="p-0 mt-4">
           <SidebarGroupLabel className="px-0 h-6">
             <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
               Categories
@@ -193,34 +265,10 @@ export function LocationsSidebar({
               })}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
 
         <SidebarGroup className="p-0 mt-4">
-          <NavMain items={[
-            {
-              title: "Settings",
-              url: "#",
-              icon: Settings2,
-              items: [
-                {
-                  title: "Alert Configuration",
-                  url: "#",
-                },
-                {
-                  title: "Exchange Vehicles",
-                  url: "#",
-                },
-                {
-                  title: "Billing",
-                  url: "#",
-                },
-                {
-                  title: "Limits",
-                  url: "#",
-                },
-              ],
-            },
-          ]} />
+          <NavMain items={[]} />
         </SidebarGroup>
 
       </SidebarContent>

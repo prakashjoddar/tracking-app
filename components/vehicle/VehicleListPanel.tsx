@@ -3,9 +3,20 @@
 import { useEffect, useState } from "react"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { VehicleCard } from "./VehicleCard"
-import { Search, Plus, RefreshCw } from "lucide-react"
-import axios from "axios"
+import { Search, Plus, RefreshCw, ArrowUpDown, SortAsc, SortDesc } from "lucide-react"
+import { api } from "@/lib/api"
 import { Vehicle } from "@/lib/types"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+type SortField = "number" | "name"
+type SortOrder = "asc" | "desc"
 
 type VehicleListPanelProps = {
     onAddNew: () => void
@@ -15,12 +26,14 @@ type VehicleListPanelProps = {
 export function VehicleListPanel({ onAddNew, onEdit }: VehicleListPanelProps) {
 
     const [search, setSearch] = useState<string>("")
+    const [sortField, setSortField] = useState<SortField>("number")
+    const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
     const { vehicles, editingVehicleId, setEditingVehicleId, setVehicles, setLoading, loading } = useVehicleManageStore()
 
     const fetchVehicles = async (): Promise<void> => {
         try {
             setLoading(true)
-            const res = await axios.get<Vehicle[]>("http://localhost:6004/vehicle")
+            const res = await api.get<Vehicle[]>("/vehicle")
             setVehicles(res.data)
         } catch (e) {
             console.error("Failed to fetch vehicles:", e)
@@ -36,8 +49,22 @@ export function VehicleListPanel({ onAddNew, onEdit }: VehicleListPanelProps) {
     const filtered = vehicles.filter((v) =>
         v.number.toLowerCase().includes(search.toLowerCase()) ||
         v.name.toLowerCase().includes(search.toLowerCase()) ||
-        v.imei.toLowerCase().includes(search.toLowerCase())
-    )
+        (v.imei && v.imei.toLowerCase().includes(search.toLowerCase()))
+    ).sort((a, b) => {
+        let valA = ""
+        let valB = ""
+        
+        if (sortField === "number") {
+            valA = a.number.toLowerCase()
+            valB = b.number.toLowerCase()
+        } else {
+            valA = (a.name || "").toLowerCase()
+            valB = (b.name || "").toLowerCase()
+        }
+
+        const comparison = valA.localeCompare(valB)
+        return sortOrder === "asc" ? comparison : -comparison
+    })
 
     return (
         <div className="flex flex-col h-full">
@@ -49,7 +76,43 @@ export function VehicleListPanel({ onAddNew, onEdit }: VehicleListPanelProps) {
                         <h2 className="font-semibold text-sm">Vehicles</h2>
                         <p className="text-xs text-gray-400">{vehicles.length} registered</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    className="p-1.5 rounded-lg border hover:bg-gray-50 transition-colors text-gray-500"
+                                    title="Sort"
+                                >
+                                    <ArrowUpDown size={14} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border-slate-200">
+                                <DropdownMenuLabel className="text-[10px] text-slate-400 font-bold uppercase tracking-widest px-2 py-1.5">Sort Vehicles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setSortField("number"); setSortOrder("asc"); }} className="text-xs py-2">
+                                    <SortAsc size={14} className="mr-2 text-slate-400" />
+                                    <span>Number (A-Z)</span>
+                                    {sortField === "number" && sortOrder === "asc" && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setSortField("number"); setSortOrder("desc"); }} className="text-xs py-2">
+                                    <SortDesc size={14} className="mr-2 text-slate-400" />
+                                    <span>Number (Z-A)</span>
+                                    {sortField === "number" && sortOrder === "desc" && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setSortField("name"); setSortOrder("asc"); }} className="text-xs py-2">
+                                    <SortAsc size={14} className="mr-2 text-slate-400" />
+                                    <span>Name (A-Z)</span>
+                                    {sortField === "name" && sortOrder === "asc" && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setSortField("name"); setSortOrder("desc"); }} className="text-xs py-2">
+                                    <SortDesc size={14} className="mr-2 text-slate-400" />
+                                    <span>Name (Z-A)</span>
+                                    {sortField === "name" && sortOrder === "desc" && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
                         <button
                             onClick={fetchVehicles}
                             className="p-1.5 rounded-lg border hover:bg-gray-50 transition-colors"

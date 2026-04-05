@@ -12,6 +12,7 @@ type VehicleState = {
   updateVehicle: (id: string, data: Partial<Vehicle>) => void;
   deleteVehicle: (id: string) => void;
   setLoading: (val: boolean) => void;
+  fetchVehicles: () => Promise<void>;
 };
 
 export const useVehicleManageStore = create<VehicleState>()(
@@ -36,6 +37,18 @@ export const useVehicleManageStore = create<VehicleState>()(
         set((s) => ({
           vehicles: s.vehicles.filter((v) => v.id !== id),
         })),
+      fetchVehicles: async () => {
+        const { api } = await import("@/lib/api");
+        set({ loading: true });
+        try {
+          const res = await api.get<Vehicle[]>("/vehicle");
+          set({ vehicles: res.data });
+        } catch (e) {
+          console.error("Failed to fetch vehicles", e);
+        } finally {
+          set({ loading: false });
+        }
+      },
     }),
     { name: "VehicleManageStore" },
   ),

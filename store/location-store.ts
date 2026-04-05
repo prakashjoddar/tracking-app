@@ -1,9 +1,9 @@
 import { create } from "zustand";
-import { VehicleLocation } from "@/lib/types";
+import { VehicleLocation, VehicleHistoryPoint } from "@/lib/types";
 
 type LocationHistory = {
   [vehicleNo: string]: {
-    [date: string]: VehicleLocation[];
+    [date: string]: VehicleHistoryPoint[];
   };
 };
 
@@ -16,7 +16,7 @@ type State = {
   setLocationHistory: (
     vehicleNo: string,
     date: string,
-    data: VehicleLocation[],
+    data: VehicleHistoryPoint[],
   ) => void;
 };
 

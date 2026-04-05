@@ -1,20 +1,20 @@
 "use client"
 
 import TripListPanel from "@/components/trip/TripListPanel"
-import JourneyForm from "@/components/trip/JourneyForm"
+import TripForm from "@/components/trip/TripForm"
 
 export default function TripPanel() {
     return (
-        <div className="flex h-full">
+        <div className="flex h-full w-full overflow-hidden">
 
-            {/* LEFT PANEL */}
-            <div className="w-[420px] border-r p-4 overflow-y-auto">
+            {/* LEFT — trip list */}
+            <div className="w-[380px] border-r flex flex-col h-full overflow-hidden shrink-0">
                 <TripListPanel />
             </div>
 
-            {/* RIGHT PANEL */}
-            <div className="flex-1 p-6">
-                <JourneyForm />
+            {/* RIGHT — trip form */}
+            <div className="flex-1 h-full overflow-hidden">
+                <TripForm />
             </div>
 
         </div>
