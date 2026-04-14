@@ -1,0 +1,7 @@
+Java
+
+- assign imei in only one vehicle ( in future )
+- remove parent from db on delete
+
+- create new user add page/register and verify for super user
+- create sub login page for org login

@@ -1,4 +1,4 @@
-import { StopType } from "@/lib/types"
+import { Stop, StopType } from "@/lib/types"
 import { useTripStore } from "@/store/trip-store"
 
 export class StopMarkerManager {
@@ -130,18 +130,7 @@ export class StopMarkerManager {
     }
 
     // ─── Confirmed stop markers ───────────────────────────────────────────────
-    syncStops(stops: {
-        // id: string; latitude: number; longitude: number, name: string, snapToRoute: boolean
-        id: string;
-        name: string;
-        enable: boolean;
-        type: StopType;
-        latitude: number;
-        longitude: number;
-        studentId: number[];
-        tripId: string;
-        snapToRoute?: boolean;
-    }[]) {
+    syncStops(stops: Stop[]) {
         for (const [id, marker] of this.markers) {
             if (!stops.find(s => s.id === id)) {
                 marker.map = null

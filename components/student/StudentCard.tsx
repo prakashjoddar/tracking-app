@@ -71,7 +71,7 @@ export function StudentCard({ student, isEditing, onEdit }: StudentCardProps) {
                     </div>
                     <div className="min-w-0">
                         <p className="text-[9px] text-gray-400 font-bold uppercase leading-none mb-0.5">Parent</p>
-                        <p className="truncate leading-none">{student.parentMobileNo}</p>
+                        <p className="truncate leading-none">{student.parents?.join(", ")}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-gray-600">
