@@ -11,7 +11,7 @@ import {
 import axios from "axios";
 
 // export const BASE_URL = "http://localhost:6003";
-export const BASE_URL = "http://138.252.201.46:6003";
+export const BASE_URL = "/api";
 
 export const api = axios.create({
   baseURL: BASE_URL,
