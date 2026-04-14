@@ -10,15 +10,20 @@ import {
 } from "./types";
 import axios from "axios";
 
+// export const BASE_URL = "http://localhost:6003";
+export const BASE_URL = "http://138.252.201.46:6003";
+
 export const api = axios.create({
-  baseURL: "http://localhost:6003",
+  baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
 api.interceptors.request.use((config) => {
   if (typeof document !== "undefined") {
     const getCookie = (name: string) => {
-      const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+      const match = document.cookie.match(
+        new RegExp("(^|;\\s*)" + name + "=([^;]*)"),
+      );
       return match ? match[2] : null;
     };
 
@@ -35,16 +40,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-let isRefreshing = false
-let failedQueue: Array<{ resolve: (v: any) => void; reject: (reason?: any) => void }> = []
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (v: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
 
 const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) prom.reject(error)
-    else prom.resolve(token)
-  })
-  failedQueue = []
-}
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+};
 
 api.interceptors.response.use(
   (response) => response,
@@ -53,19 +61,29 @@ api.interceptors.response.use(
     // Detection: Check if the response was a 401 OR if the error message explicitly contains "JWT expired"
     // Even if the status is 500, we should still try to refresh if it's a JWT expiry.
     const errorData = error.response?.data;
-    const errorString = typeof errorData === 'string' ? errorData : JSON.stringify(errorData || "");
-    const isUnauthorized = error.response?.status === 401 || errorString.includes("JWT expired");
+    const errorString =
+      typeof errorData === "string"
+        ? errorData
+        : JSON.stringify(errorData || "");
+    const isUnauthorized =
+      error.response?.status === 401 || errorString.includes("JWT expired");
 
-    if (isUnauthorized && !originalRequest._retry && typeof window !== "undefined") {
+    if (
+      isUnauthorized &&
+      !originalRequest._retry &&
+      typeof window !== "undefined"
+    ) {
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
-          failedQueue.push({ resolve, reject })
-        }).then(token => {
-          originalRequest.headers['Authorization'] = 'Bearer ' + token;
-          return api(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
+          failedQueue.push({ resolve, reject });
         })
+          .then((token) => {
+            originalRequest.headers["Authorization"] = "Bearer " + token;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
       }
 
       originalRequest._retry = true;
@@ -74,11 +92,11 @@ api.interceptors.response.use(
       try {
         const authActions = await import("./auth-actions");
         const res = await authActions.refreshTokensAction();
-        
+
         if (res.success && res.accessToken) {
           const newToken = res.accessToken;
-          api.defaults.headers.common['Authorization'] = 'Bearer ' + newToken;
-          originalRequest.headers['Authorization'] = 'Bearer ' + newToken;
+          api.defaults.headers.common["Authorization"] = "Bearer " + newToken;
+          originalRequest.headers["Authorization"] = "Bearer " + newToken;
           processQueue(null, newToken);
           return api(originalRequest);
         } else {
@@ -95,7 +113,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // ── Location ──────────────────────────────────────────────────────────────────
@@ -167,7 +185,11 @@ export async function initializeWaypoint(
   startDate: string,
   endDate: string,
 ): Promise<Trip> {
-  const res = await api.post<Trip>("/trip/waypoint", { tripId, startDate, endDate });
+  const res = await api.post<Trip>("/trip/waypoint", {
+    tripId,
+    startDate,
+    endDate,
+  });
   return res.data;
 }
 
@@ -211,7 +233,7 @@ export const fetchStudents = async (): Promise<StudentRequestResponse[]> => {
 };
 
 export const saveStudent = async (
-  data: StudentRequestResponse
+  data: StudentRequestResponse,
 ): Promise<StudentRequestResponse> => {
   const res = await api.post("/user/student", data);
   return res.data;
@@ -235,13 +257,17 @@ export async function fetchAllUsers(): Promise<UserRequestResponse[]> {
 }
 
 /** ORG / SUB_ORG — returns scoped users, optionally filtered by type */
-export async function fetchUsers(type?: import("./types").UserType): Promise<UserRequestResponse[]> {
-  const res = await api.get<UserRequestResponse[]>("/user", { params: type ? { type } : undefined });
+export async function fetchUsers(
+  type?: import("./types").UserType,
+): Promise<UserRequestResponse[]> {
+  const res = await api.get<UserRequestResponse[]>("/user", {
+    params: type ? { type } : undefined,
+  });
   return res.data;
 }
 
 export async function saveUser(
-  user: UserRequestResponse
+  user: UserRequestResponse,
 ): Promise<UserRequestResponse> {
   const res = await api.post<UserRequestResponse>("/user", user);
   return res.data;

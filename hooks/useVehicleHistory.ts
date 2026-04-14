@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useHistoryStore } from "@/store/history-store";
+import { BASE_URL } from "@/lib/api";
 
 export function useVehicleHistory(vehicleNo: string, date: string) {
   const setPoints = useHistoryStore((s) => s.setPoints);
@@ -7,7 +8,7 @@ export function useVehicleHistory(vehicleNo: string, date: string) {
   useEffect(() => {
     async function load() {
       const res = await fetch(
-        `http://localhost:6003/location/history/${vehicleNo}/${date}`,
+        BASE_URL + `/location/history/${vehicleNo}/${date}`,
       );
 
       const data = await res.json();
