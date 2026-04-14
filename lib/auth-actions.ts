@@ -1,7 +1,7 @@
 "use server"
 
 import { cookies } from "next/headers"
-import { api } from "@/lib/api"
+import { serverApi as api } from "@/lib/api"
 
 export async function loginAction(email: string, password?: string) {
     try {

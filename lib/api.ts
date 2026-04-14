@@ -13,8 +13,16 @@ import axios from "axios";
 // export const BASE_URL = "http://localhost:6003";
 export const BASE_URL = "/api";
 
+export const BACKEND_URL = "http://138.252.201.46:6003";
+
 export const api = axios.create({
   baseURL: BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
+/** Server-only axios instance — uses direct backend URL (no proxy needed on Node.js) */
+export const serverApi = axios.create({
+  baseURL: BACKEND_URL,
   headers: { "Content-Type": "application/json" },
 });
 
