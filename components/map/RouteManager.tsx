@@ -21,6 +21,8 @@ export class RouteManager {
             return
         }
 
+        this.fullPath = path
+
         // ─── Start marker ───────────────────────────────────────────
         const startPin = new google.maps.marker.PinElement({
             background: "#16a34a",
@@ -78,6 +80,7 @@ export class RouteManager {
             this.endMarker.map = null
             this.endMarker = null
         }
+        this.fullPath = []
     }
 
     // 0.0 → 1.0 progress value

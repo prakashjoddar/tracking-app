@@ -7,7 +7,7 @@ import { WaypointInitModal } from "./WaypointInitModal"
 import { SearchableSelect } from "../ui/searchable-select"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { fetchTrips, deleteTrip, fetchVehicles, fetchStops, initializeWaypoint } from "@/lib/api"
-import { Search, Plus, RefreshCw } from "lucide-react"
+import { Search, Plus, RefreshCw, Bus } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 
@@ -131,7 +131,12 @@ export default function TripListPanel({ onAddNew, onEdit }: TripListPanelProps) 
 
         {/* Vehicle selector */}
         <SearchableSelect
-          options={vehicles.map(v => ({ label: v.number, value: v.id }))}
+          options={vehicles.map(v => ({
+            label: v.name || "Unnamed Vehicle",
+            subLabel: v.number,
+            value: v.id,
+            icon: <Bus size={14} className="text-blue-500" />
+          }))}
           value={selectedVehicleId || ""}
           onChange={handleVehicleChange}
           placeholder="Select vehicle..."

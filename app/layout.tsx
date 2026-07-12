@@ -26,16 +26,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans h-full overflow-hidden`}>
-        <ThemeProvider
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans h-full overflow-hidden`}
+      >
+        {/* <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-        >
-          {children}
-          <Toaster position="top-right" richColors closeButton />
-        </ThemeProvider>
+        > */}
+        {children}
+        <Toaster position="top-right" richColors closeButton />
+        {/* </ThemeProvider> */}
       </body>
     </html>
   );
