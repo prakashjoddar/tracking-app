@@ -1,4 +1,4 @@
-import { VehicleLocation } from "@/lib/types";
+import { VehicleGroupEntry, VehicleLocation } from "@/lib/types";
 import { create } from "zustand";
 
 type ViewMode = "map" | "list" | "split";
@@ -73,6 +73,12 @@ interface MapsState {
 
   autoFocus: boolean;
   setAutoFocus: (value: boolean) => void;
+
+  vehicleGroups: VehicleGroupEntry[];
+  setVehicleGroups: (groups: VehicleGroupEntry[]) => void;
+
+  selectedGroupId: string | null;
+  setSelectedGroupId: (id: string | null) => void;
 }
 
 export const useMapsStore = create<MapsState>((set, get) => ({
@@ -81,7 +87,7 @@ export const useMapsStore = create<MapsState>((set, get) => ({
   selectedTags: [],
   searchQuery: "",
   viewMode: "split",
-  sortBy: "nearest",
+  sortBy: "date-newest",
   selectedLocationId: null,
   mapCenter: { lat: 20, lng: 0 },
   mapZoom: 2,
@@ -101,6 +107,12 @@ export const useMapsStore = create<MapsState>((set, get) => ({
     set({
       autoFocus: value,
     }),
+
+  vehicleGroups: [],
+  setVehicleGroups: (groups) => set({ vehicleGroups: groups }),
+
+  selectedGroupId: null,
+  setSelectedGroupId: (id) => set({ selectedGroupId: id }),
 
   setSelectedCategory: (categoryId) => {
     const state = get();

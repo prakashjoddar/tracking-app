@@ -1,7 +1,7 @@
 "use client"
 
 import { TripType } from "@/lib/types"
-import { Bus, MapPin, Users, UserCheck, GraduationCap, Pencil, Trash2, Clock, Wand2 } from "lucide-react"
+import { Bus, MapPin, Users, UserCheck, GraduationCap, Pencil, Trash2, Clock, Wand2, Copy } from "lucide-react"
 
 type TripCardProps = {
     id: string
@@ -19,6 +19,7 @@ type TripCardProps = {
     onEdit?: () => void
     onDelete?: () => void
     onInitialize?: () => void
+    onClone?: () => void
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -32,7 +33,7 @@ const TYPE_STYLES: Record<string, string> = {
     DROPPING: "bg-purple-100 text-purple-600",
 }
 
-export function TripCard({ name, type, enable, startTime, endTime, stopCount = 0, staff = 0, studentCount = 0, status, hasWaypoint, isEditing, onEdit, onDelete, onInitialize }: TripCardProps) {
+export function TripCard({ name, type, enable, startTime, endTime, stopCount = 0, staff = 0, studentCount = 0, status, hasWaypoint, isEditing, onEdit, onDelete, onInitialize, onClone }: TripCardProps) {
     return (
         <div className={`rounded-xl border p-4 shadow-sm transition-all
             ${isEditing
@@ -90,6 +91,13 @@ export function TripCard({ name, type, enable, startTime, endTime, stopCount = 0
                 >
                     <Trash2 size={11} />
                     Delete
+                </button>
+                <button
+                    onClick={onClone}
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                    <Copy size={11} />
+                    Clone
                 </button>
                 <button
                     onClick={onInitialize}

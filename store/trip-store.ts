@@ -45,6 +45,12 @@ type State = {
   clearDeletedStops: () => void;
   updateStopPosition: (id: string, lat: number, lng: number) => void;
   reorderStops: (oldIndex: number, newIndex: number) => void;
+
+  // One-shot "focus this stop on the map" trigger — incrementing counter pattern
+  // so re-requesting the same stop still fires the effect.
+  focusStopId: string | null;
+  focusStopRequestId: number;
+  requestStopFocus: (stopId: string) => void;
 };
 
 export const useTripStore = create<State>()(
@@ -112,6 +118,11 @@ export const useTripStore = create<State>()(
         set((s) => ({
           stops: arrayMove(s.stops, oldIndex, newIndex),
         })),
+
+      focusStopId: null,
+      focusStopRequestId: 0,
+      requestStopFocus: (stopId) =>
+        set((s) => ({ focusStopId: stopId, focusStopRequestId: s.focusStopRequestId + 1 })),
     }),
     { name: "TripStore" },
   ),

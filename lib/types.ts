@@ -14,6 +14,10 @@ export type VehicleLocation = {
   externalBatteryPercent?: number | null;
   internalBatteryPercent?: number | null;
   status: string;
+  tripActive?: boolean;
+  /** Stop progress for the active trip — undefined/null unless tripActive. */
+  completedStops?: number | null;
+  totalStops?: number | null;
 };
 
 export type VehicleHistoryPoint = {
@@ -72,9 +76,92 @@ export type Trip = {
   waypoint?: string;
   stopCount?: number;
   studentCount?: number;
+  followSequence: boolean;
+  sequenceLookahead?: number | null;
 };
 
 export type StopType = "BUS_STOP" | "PICK_DROP" | "INSTITUTE";
+
+/** Minimal driver/supervisor info attached to an active trip. */
+export type PersonSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  mobileNo: string;
+  photoUrl?: string | null;
+};
+
+/** GET /api/trip/vehicle/{vehicleNo}/active — 204 when the vehicle has no active trip. */
+export type ActiveTrip = {
+  vehicleNo: string;
+  tripId: number;
+  tripName: string;
+  tripType: TripType;
+  waypoint?: string;
+  drivers: PersonSummary[];
+  supervisors: PersonSummary[];
+};
+
+export type AlertType =
+  | "TRIP_STARTED"
+  | "TRIP_FINISHED"
+  | "BUS_APPROACHING_STOP"
+  | "BUS_ARRIVED_AT_STOP"
+  | "BUS_DEPARTED_STOP"
+  | "STOP_SKIPPED_MISSED";
+
+export type Alert = {
+  id: number;
+  vehicleNo: string;
+  tripId: number;
+  stopId: number | null;
+  type: AlertType;
+  message: string;
+  latitude: number | null;
+  longitude: number | null;
+  distanceMeters: number | null;
+  etaSeconds: number | null;
+  createdAt: string; // ISO LocalDateTime
+};
+
+/** Per-packet vehicle-status alerts — a separate, higher-volume stream than Alert/trip alerts. */
+export type VehicleAlertType =
+  | "IGNITION_ON"
+  | "IGNITION_OFF"
+  | "OVER_SPEED"
+  | "RUNNING"
+  | "IDLE"
+  | "HALT"
+  | "PARKED"
+  | "BATTERY_LOW"
+  | "GEOFENCE_ENTER"
+  | "GEOFENCE_EXIT";
+
+export type VehicleAlert = {
+  vehicleNo: string;
+  type: VehicleAlertType;
+  dateTime: string; // ISO LocalDateTime — no surrogate id, (vehicleNo, type, dateTime) is the natural key
+  alertLimit: number | null;
+  alertValue: number | null;
+  category: "ALERT" | "TRIP" | null;
+  message: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accId: string | null;
+};
+
+/** Shape of a Spring Data `Page<T>` JSON response. */
+export type Page<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number; // current page index, 0-based
+  size: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+};
 
 export type Stop = {
   id: string;
@@ -87,6 +174,7 @@ export type Stop = {
   tripId: string;
   sequence?: number;
   snapToRoute?: boolean;
+  radiusMeters?: number;
 };
 
 export type UserType = "SUPER" | "ORG" | "SUB_ORG" | "DRIVER" | "SUPERVISOR" | "STUDENT" | "PARENT";
@@ -105,7 +193,27 @@ export type UserRequestResponse = {
   licenseNo?: string;
   licenseExpiryDate?: string; // "YYYY-MM-DD"
   rfid?: string;
+  photoUrl?: string | null;
+  vehicleIds?: string[];
+  vehicleGroupIds?: string[];
+  allowedMenus?: string[];
 };
+
+export type MenuKey =
+  | "DASHBOARD"
+  | "LOCATION_HISTORY"
+  | "VEHICLE_DETAILS"
+  | "VEHICLE_GROUPS"
+  | "ALERTS"
+  | "MESSAGES"
+  | "REPORTS"
+  | "GEOFENCE"
+  | "ALERT_SETTINGS"
+  | "TRIPS"
+  | "DRIVER_SUPERVISOR"
+  | "STUDENTS"
+  | "SUB_LOGIN"
+  | "VEHICLE_REPLACEMENT";
 
 export type ParentDetails = {
   name: string;
@@ -142,4 +250,119 @@ export type Geofence = {
   description?: string;
   address?: string;
   orgId?: number;
+};
+
+// ── Message ───────────────────────────────────────────────────────────────────
+export type RecipientType = "PARENT" | "STUDENT" | "DRIVER" | "SUPERVISOR" | "ALL";
+
+export type SendMessageRequest = {
+  vehicleNo: string | null; // null = all vehicles
+  recipientType: RecipientType;
+  text: string;
+};
+
+export type MessageResponse = {
+  id: number;
+  vehicleNo: string | null;
+  recipientType: RecipientType;
+  text: string;
+  createdAt: string; // ISO LocalDateTime
+};
+
+// ── Notification (live, SSE) ─────────────────────────────────────────────────
+export type NotificationSource = "ALERT" | "TRIP_ALERT";
+
+/** Pushed by gps-engine's notification package over `GET /api/notifications/stream`. */
+export type NotificationEvent = {
+  id: string;
+  source: NotificationSource;
+  vehicleNo: string;
+  orgId: number;
+  type: VehicleAlertType | AlertType | string;
+  message: string;
+  dateTime: string; // ISO LocalDateTime
+  latitude: number | null;
+  longitude: number | null;
+
+  // ALERT-only
+  category?: "ALERT" | "TRIP" | null;
+  alertValue?: number | null;
+  alertLimit?: number | null;
+  priority?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | null;
+
+  // TRIP_ALERT-only
+  tripId?: number | null;
+  stopId?: number | null;
+  distanceMeters?: number | null;
+  etaSeconds?: number | null;
+};
+
+// ── Report ────────────────────────────────────────────────────────────────────
+export type DistanceReportEntry = {
+  vehicleNo: string;
+  distanceKm: number;
+};
+
+export type DaywiseDistanceEntry = {
+  date: string; // "YYYY-MM-DD"
+  vehicleNo: string;
+  distanceKm: number;
+};
+
+export type VehicleReportEntry = {
+  date: string; // "YYYY-MM-DD"
+  vehicleNo: string;
+  distanceKm: number;
+  runningMinutes: number;
+  idleMinutes: number;
+  parkedMinutes: number;
+  overSpeedPercent: number;
+  maxSpeedKmh: number;
+  speedLimitKmh: number;
+};
+
+
+export type TripReportEntry = {
+  id: number;
+  vehicleNo: string;
+  tripId: number;
+  tripName: string | null;
+  type: "PICKING" | "DROPPING";
+  state: "STARTED" | "RUNNING" | "FINISHED";
+  startTime: string; // ISO LocalDateTime
+  endTime: string | null; // ISO LocalDateTime — null while still in progress
+  totalStopsVisited: number;
+};
+
+export type AlertConfigEntry = {
+  vehicleNo: string;
+  vehicleName: string | null;
+  thresholdLimit: number;
+  minimumRunningSpeed: number;
+  overSpeedLimit: number;
+  lowBatteryPercentage: number;
+  ignitionAlert: boolean;
+  overSpeedAlert: boolean;
+  stateAlert: boolean;
+  lowBatteryAlert: boolean;
+  geoFenceAlert: boolean;
+  tripAlert: boolean;
+  overridden: boolean;
+};
+
+export type AlertConfigUpdateRequest = Omit<AlertConfigEntry, "vehicleNo" | "vehicleName" | "overridden">;
+
+export type VehicleGroupEntry = {
+  id: string;
+  name: string;
+  description: string | null;
+  vehicleIds: string[];
+  vehicleNumbers: string[];
+};
+
+export type VehicleGroupSaveRequest = {
+  id?: string;
+  name: string;
+  description: string;
+  vehicleIds: string[];
 };

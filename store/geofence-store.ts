@@ -8,6 +8,8 @@ interface GeofenceState {
   pendingLatLng: { lat: number; lng: number } | null
   pendingRadius: number
   pendingColor: string
+  /** Bumped by the form's "Locate" button — GoogleMapView recenters on pendingLatLng when it changes. */
+  locateRequestId: number
 
   setGeofences: (geofences: Geofence[]) => void
   addGeofence: (geofence: Geofence) => void
@@ -18,6 +20,7 @@ interface GeofenceState {
   setPendingLatLng: (latLng: { lat: number; lng: number } | null) => void
   setPendingRadius: (radius: number) => void
   setPendingColor: (color: string) => void
+  requestLocate: () => void
 }
 
 export const useGeofenceStore = create<GeofenceState>((set) => ({
@@ -27,6 +30,7 @@ export const useGeofenceStore = create<GeofenceState>((set) => ({
   pendingLatLng: null,
   pendingRadius: 150,
   pendingColor: "#fb923c",
+  locateRequestId: 0,
 
   setGeofences: (geofences) => set({ geofences }),
   addGeofence: (geofence) => set((state) => ({ 
@@ -43,4 +47,5 @@ export const useGeofenceStore = create<GeofenceState>((set) => ({
   setPendingLatLng: (pendingLatLng) => set({ pendingLatLng }),
   setPendingRadius: (pendingRadius) => set({ pendingRadius }),
   setPendingColor: (pendingColor) => set({ pendingColor }),
+  requestLocate: () => set((state) => ({ locateRequestId: state.locateRequestId + 1 })),
 }))

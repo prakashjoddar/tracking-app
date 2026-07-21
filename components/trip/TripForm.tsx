@@ -6,7 +6,7 @@ import dayjs from "dayjs"
 import { useEffect, useState } from "react"
 import { Input } from "../ui/input"
 import { useRouter } from "next/navigation"
-import { Bus, Clock, Users, MapPin, Save, RotateCcw, Search, ShieldCheck, CarFront, Phone, Check, Loader2 } from "lucide-react"
+import { Bus, Clock, Users, MapPin, Save, RotateCcw, Search, ShieldCheck, CarFront, Phone, Check, Loader2, ListOrdered } from "lucide-react"
 import { useTripStore } from "@/store/trip-store"
 import { Trip, UserRequestResponse, WeekDay } from "@/lib/types"
 import { saveTrip, saveStops, fetchUsers } from "@/lib/api"
@@ -52,6 +52,8 @@ export default function TripForm() {
     const [selectedDays, setSelectedDays] = useState<string[]>(
         DAYS.filter(d => d !== "Saturday" && d !== "Sunday")
     )
+    const [followSequence, setFollowSequence] = useState<boolean>(false)
+    const [sequenceLookahead, setSequenceLookahead] = useState<string>("")
 
     // Driver selection
     const [driverDrawerOpen, setDriverDrawerOpen] = useState<boolean>(false)
@@ -79,6 +81,8 @@ export default function TripForm() {
             setSelectedDays(editingTrip.workingDay.map(toDisplay))
             setSelectedSupervisorIds(editingTrip.staff ?? [])
             setSelectedDriverIds(editingTrip.driver ?? [])
+            setFollowSequence(editingTrip.followSequence ?? false)
+            setSequenceLookahead(editingTrip.sequenceLookahead != null ? String(editingTrip.sequenceLookahead) : "")
         } else {
             setTripName("")
             setTripType("PICKING")
@@ -88,6 +92,8 @@ export default function TripForm() {
             setSelectedDays(DAYS.filter(d => d !== "Saturday" && d !== "Sunday"))
             setSelectedSupervisorIds([])
             setSelectedDriverIds([])
+            setFollowSequence(false)
+            setSequenceLookahead("")
         }
     }, [editingTripId])
 
@@ -154,6 +160,8 @@ export default function TripForm() {
         setSelectedDays(DAYS.filter(d => d !== "Saturday" && d !== "Sunday"))
         setSelectedSupervisorIds([])
         setSelectedDriverIds([])
+        setFollowSequence(false)
+        setSequenceLookahead("")
     }
 
     const handleClear = () => {
@@ -174,6 +182,8 @@ export default function TripForm() {
                 staff: selectedSupervisorIds,
                 driver: selectedDriverIds,
                 vehicleId: selectedVehicleId || "",
+                followSequence,
+                sequenceLookahead: followSequence && sequenceLookahead.trim() ? parseInt(sequenceLookahead, 10) : null,
             }
             const saved = await saveTrip(payload)
             if (editingTrip) {
@@ -193,6 +203,7 @@ export default function TripForm() {
                     studentId: stop.studentId ?? [],
                     tripId: saved.id,
                     sequence: index + 1,
+                    radiusMeters: stop.radiusMeters,
                 }))
                 const stopResults = await saveStops(stopPayload)
                 setStops(stopResults.map(s => ({ ...s, snapToRoute: true })))
@@ -278,6 +289,38 @@ export default function TripForm() {
                         <Checkbox.Group options={DAYS} value={selectedDays}
                             onChange={vals => setSelectedDays(vals as string[])} className="flex flex-wrap gap-y-2" />
                     </FormField>
+                </Section>
+
+                <Section icon={<ListOrdered size={13} />} title="Stop Sequence">
+                    <FormField label="Follow Sequence">
+                        <Radio.Group
+                            options={[
+                                { label: "Off", value: false },
+                                { label: "On", value: true },
+                            ]}
+                            value={followSequence}
+                            optionType="button"
+                            buttonStyle="solid"
+                            onChange={e => setFollowSequence(e.target.value)}
+                        />
+                    </FormField>
+                    {followSequence && (
+                        <FormField label="Lookahead (stops)">
+                            <Input
+                                type="number"
+                                min={1}
+                                value={sequenceLookahead}
+                                onChange={e => setSequenceLookahead(e.target.value)}
+                                placeholder="Default: 3"
+                                className="font-mono text-xs"
+                            />
+                        </FormField>
+                    )}
+                    <p className="text-[11px] text-gray-400">
+                        When on, stops are only confirmed in route order — prevents a
+                        later stop (e.g. on the opposite lane of an earlier road) from
+                        being falsely marked arrived out of turn.
+                    </p>
                 </Section>
 
                 <Section icon={<CarFront size={13} />} title="Drivers">

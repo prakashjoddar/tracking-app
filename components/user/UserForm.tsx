@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { UserRequestResponse, UserType } from "@/lib/types"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { UserRequestResponse, UserType, VehicleGroupEntry } from "@/lib/types"
 import { useUserManageStore } from "@/store/user-store"
+import { useVehicleManageStore } from "@/store/vehicle-store"
 import { Input } from "@/components/ui/input"
-import { Save, User, Mail, Lock, X, Loader2, Eye, EyeOff, CreditCard, ShieldCheck } from "lucide-react"
-import { saveUser } from "@/lib/api"
+import { Save, User, Mail, Lock, X, Loader2, Eye, EyeOff, CreditCard, ShieldCheck, Camera, Car, Layers, Check, Bus, ListChecks } from "lucide-react"
+import { saveUser, uploadUserPhoto, resolveUserPhotoUrl, fetchVehicleGroups } from "@/lib/api"
+import { MENU_ITEMS } from "@/lib/menu-items"
 import { toast } from "sonner"
 
 type Mode = "add" | "edit"
@@ -28,6 +30,9 @@ const makeDefault = (type: UserType): UserRequestResponse => ({
     licenseNo: "",
     licenseExpiryDate: "",
     rfid: "",
+    vehicleIds: [],
+    vehicleGroupIds: [],
+    allowedMenus: [],
 })
 
 // ── outside component — stable references, no remount on re-render ────────────
@@ -62,6 +67,60 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
     const [showPassword, setShowPassword] = useState(false)
     const [errors, setErrors] = useState<Partial<Record<keyof UserRequestResponse, string>>>({})
 
+    const [photoFile, setPhotoFile] = useState<File | null>(null)
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const isSubOrg = form.type === "SUB_ORG"
+    const { vehicles, fetchVehicles } = useVehicleManageStore()
+    const [groups, setGroups] = useState<VehicleGroupEntry[]>([])
+    useEffect(() => {
+        if (!isSubOrg) return
+        if (vehicles.length === 0) fetchVehicles()
+        fetchVehicleGroups().then(setGroups).catch(() => {})
+    }, [isSubOrg])
+
+    const toggleVehicleId = (id: string) => {
+        setForm(prev => ({
+            ...prev,
+            vehicleIds: (prev.vehicleIds ?? []).includes(id)
+                ? (prev.vehicleIds ?? []).filter(v => v !== id)
+                : [...(prev.vehicleIds ?? []), id],
+        }))
+    }
+
+    const toggleGroupId = (id: string) => {
+        setForm(prev => ({
+            ...prev,
+            vehicleGroupIds: (prev.vehicleGroupIds ?? []).includes(id)
+                ? (prev.vehicleGroupIds ?? []).filter(v => v !== id)
+                : [...(prev.vehicleGroupIds ?? []), id],
+        }))
+    }
+
+    const restrictableMenus = MENU_ITEMS.filter(m => m.menuKey !== "DASHBOARD")
+    const toggleMenuKey = (key: string) => {
+        setForm(prev => ({
+            ...prev,
+            allowedMenus: (prev.allowedMenus ?? []).includes(key)
+                ? (prev.allowedMenus ?? []).filter(v => v !== key)
+                : [...(prev.allowedMenus ?? []), key],
+        }))
+    }
+
+    const assignedVehicleCount = useMemo(() => {
+        const groupVehicleNos = new Set<string>()
+        for (const g of groups) {
+            if ((form.vehicleGroupIds ?? []).includes(g.id)) {
+                g.vehicleNumbers.forEach(no => groupVehicleNos.add(no))
+            }
+        }
+        for (const v of vehicles) {
+            if ((form.vehicleIds ?? []).includes(v.id)) groupVehicleNos.add(v.number)
+        }
+        return groupVehicleNos.size
+    }, [groups, vehicles, form.vehicleGroupIds, form.vehicleIds])
+
     useEffect(() => {
         if (mode === "edit" && editingUserId) {
             const current = users.find(u => u.id === editingUserId)
@@ -79,13 +138,31 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
                     licenseNo: current.licenseNo || "",
                     licenseExpiryDate: current.licenseExpiryDate || "",
                     rfid: current.rfid || "",
+                    photoUrl: current.photoUrl,
+                    vehicleIds: current.vehicleIds || [],
+                    vehicleGroupIds: current.vehicleGroupIds || [],
+                    allowedMenus: current.allowedMenus || [],
                 })
+                setPhotoPreview(resolveUserPhotoUrl(current.photoUrl))
             }
         } else {
             setForm(makeDefault(defaultType))
+            setPhotoPreview(null)
         }
+        setPhotoFile(null)
         setErrors({})
     }, [mode, editingUserId])
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select an image file.")
+            return
+        }
+        setPhotoFile(file)
+        setPhotoPreview(URL.createObjectURL(file))
+    }
 
     const set = <K extends keyof UserRequestResponse>(key: K, value: UserRequestResponse[K]) =>
         setForm(prev => ({ ...prev, [key]: value }))
@@ -108,7 +185,10 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
             if (!payload.licenseNo) delete payload.licenseNo
             if (!payload.licenseExpiryDate) delete payload.licenseExpiryDate
             if (!payload.rfid) delete payload.rfid
-            const saved = await saveUser(payload)
+            let saved = await saveUser(payload)
+            if (photoFile && saved.id) {
+                saved = await uploadUserPhoto(saved.id, photoFile)
+            }
             if (mode === "edit" && editingUserId) {
                 updateUser(editingUserId, saved)
             } else {
@@ -148,6 +228,39 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+
+                {/* Photo */}
+                <div className="flex items-center gap-4">
+                    <div className="relative shrink-0">
+                        <div className="size-20 rounded-2xl overflow-hidden bg-slate-900 text-white flex items-center justify-center text-2xl font-bold">
+                            {photoPreview ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                `${form.firstName?.[0] ?? ""}${form.lastName?.[0] ?? ""}`.toUpperCase() || "?"
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute -bottom-1 -right-1 flex items-center justify-center size-7 rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors ring-2 ring-white"
+                            title="Upload photo"
+                        >
+                            <Camera size={13} />
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                            className="hidden"
+                        />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-slate-700">Profile Photo</p>
+                        <p className="text-xs text-slate-400 mt-0.5">JPG or PNG, up to 5MB.</p>
+                    </div>
+                </div>
 
                 {/* Personal */}
                 <div>
@@ -208,6 +321,86 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
                             <Field label="RFID Tag">
                                 <Input value={form.rfid || ""} onChange={e => set("rfid", e.target.value)} placeholder="RFID-0001" />
                             </Field>
+                        </div>
+                    </div>
+                )}
+
+                {/* Vehicle Access — SUB_ORG only */}
+                {isSubOrg && (
+                    <div>
+                        <SectionHeader icon={<Car className="w-4 h-4" />} title="Vehicle Access" />
+                        <p className="text-xs text-slate-400 -mt-2 mb-3">
+                            {(form.vehicleIds?.length || form.vehicleGroupIds?.length)
+                                ? `Restricted to ${assignedVehicleCount} vehicle${assignedVehicleCount === 1 ? "" : "s"}.`
+                                : "No restriction — this sub-login sees every vehicle in your organisation."}
+                        </p>
+
+                        <div className="space-y-2 mb-4">
+                            <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5"><Layers size={13} /> Vehicle Groups</p>
+                            {groups.length === 0 ? (
+                                <p className="text-xs text-slate-400">No vehicle groups created yet.</p>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {groups.map(g => {
+                                        const selected = (form.vehicleGroupIds ?? []).includes(g.id)
+                                        return (
+                                            <button type="button" key={g.id} onClick={() => toggleGroupId(g.id)}
+                                                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${selected ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                                                <span className="text-sm truncate">{g.name}</span>
+                                                <span className="flex items-center gap-1 shrink-0">
+                                                    <span className="text-[10px] text-slate-400">{g.vehicleNumbers.length}</span>
+                                                    {selected && <Check size={13} className="text-blue-600" />}
+                                                </span>
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5"><Bus size={13} /> Individual Vehicles</p>
+                            {vehicles.length === 0 ? (
+                                <p className="text-xs text-slate-400">No vehicles found.</p>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                                    {vehicles.map(v => {
+                                        const selected = (form.vehicleIds ?? []).includes(v.id)
+                                        return (
+                                            <button type="button" key={v.id} onClick={() => toggleVehicleId(v.id)}
+                                                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${selected ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                                                <span className="text-sm truncate">{v.number}</span>
+                                                {selected && <Check size={13} className="text-blue-600 shrink-0" />}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Menu Access — SUB_ORG only */}
+                {isSubOrg && (
+                    <div>
+                        <SectionHeader icon={<ListChecks className="w-4 h-4" />} title="Menu Access" />
+                        <p className="text-xs text-slate-400 -mt-2 mb-3">
+                            {form.allowedMenus?.length
+                                ? `Restricted to ${form.allowedMenus.length} menu${form.allowedMenus.length === 1 ? "" : "s"} (Dashboard always included).`
+                                : "No restriction — this sub-login sees every menu."}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            {restrictableMenus.map(m => {
+                                const selected = (form.allowedMenus ?? []).includes(m.menuKey)
+                                return (
+                                    <button type="button" key={m.menuKey} onClick={() => toggleMenuKey(m.menuKey)}
+                                        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${selected ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                                        <span className="text-sm truncate">{m.name}</span>
+                                        {selected && <Check size={13} className="text-blue-600 shrink-0" />}
+                                    </button>
+                                )
+                            })}
                         </div>
                     </div>
                 )}

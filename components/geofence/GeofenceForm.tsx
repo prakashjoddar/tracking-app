@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { Geofence } from "@/lib/types"
 import { useGeofenceStore } from "@/store/geofence-store"
 import { Input } from "@/components/ui/input"
-import { Save, Circle, MapPin, Navigation, Tag, X, Loader2 } from "lucide-react"
+import { Save, Circle, MapPin, Navigation, Tag, X, Loader2, LocateFixed } from "lucide-react"
 import { saveGeofence } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -51,7 +51,7 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
     const {
         geofences, editingGeofenceId, addGeofence, updateGeofence,
         pendingLatLng, setPendingLatLng,
-        setPendingRadius, setPendingColor
+        setPendingRadius, setPendingColor, requestLocate
     } = useGeofenceStore()
 
     const [form, setForm] = useState<Geofence>(defaultForm)
@@ -62,6 +62,21 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
     const [suggestions, setSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false)
     const mapSyncDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+
+    // Google bills Places Autocomplete per-session only when the same token is
+    // reused across the full type-ahead + place-details sequence — mint one
+    // per search session, not per keystroke.
+    const getSessionToken = (): google.maps.places.AutocompleteSessionToken => {
+        if (!sessionTokenRef.current) {
+            sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
+        }
+        return sessionTokenRef.current
+    }
+
+    const resetSessionToken = (): void => {
+        sessionTokenRef.current = null
+    }
 
     // Load editing data
     useEffect(() => {
@@ -139,9 +154,8 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
 
         const fetch = async (): Promise<void> => {
             try {
-                const token = new google.maps.places.AutocompleteSessionToken()
                 const { suggestions } = await google.maps.places.AutocompleteSuggestion
-                    .fetchAutocompleteSuggestions({ input: searchQuery, sessionToken: token })
+                    .fetchAutocompleteSuggestions({ input: searchQuery, sessionToken: getSessionToken() })
 
                 setSuggestions(
                     suggestions
@@ -169,7 +183,9 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
 
             const lat = place.location?.lat()
             const lng = place.location?.lng()
-            if (!lat || !lng) return
+            if (lat == null || lng == null) return
+
+            resetSessionToken()
 
             setForm(prev => ({
                 ...prev,
@@ -182,6 +198,7 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
             setShowSuggestions(false)
         } catch (e) {
             console.error("Place details error:", e)
+            toast.error("Failed to fetch place details")
         }
     }
 
@@ -376,9 +393,22 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
                                 {form.latitude === 0 && <div className="absolute -inset-1 bg-white/30 rounded-full animate-ping" />}
                             </div>
                             <div className="flex-1">
-                                <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5">
-                                    {form.latitude === 0 ? "Action Required: Set Location" : "Location Set"}
-                                </p>
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5">
+                                        {form.latitude === 0 ? "Action Required: Set Location" : "Location Set"}
+                                    </p>
+                                    {form.latitude !== 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={requestLocate}
+                                            title="Recenter map on this location"
+                                            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded text-white bg-red-600 hover:bg-red-700"
+                                        >
+                                            <LocateFixed size={11} />
+                                            Locate
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="text-[10px] leading-relaxed opacity-90">
                                     {form.latitude === 0
                                         ? "Simply click anywhere on the map to instantly set the center of your geofence. You can also use the search box above."

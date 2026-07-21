@@ -7,8 +7,11 @@ import {
     UserCheck,
     Gauge,
     Navigation,
-    ParkingCircle,
     FileBarChart2,
+    Milestone,
+    CalendarRange,
+    Signpost,
+    AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -34,6 +37,33 @@ const reports = [
         color: "bg-purple-50 text-purple-600",
         border: "hover:border-purple-200",
         href: "/report/geofence",
+    },
+    {
+        id: "distance",
+        title: "Distance Report",
+        description: "Total distance travelled per vehicle over a date range.",
+        icon: Milestone,
+        color: "bg-cyan-50 text-cyan-600",
+        border: "hover:border-cyan-200",
+        href: "/report/distance",
+    },
+    {
+        id: "distance-daywise",
+        title: "Day-wise Distance Report",
+        description: "Distance travelled per vehicle, broken down by day.",
+        icon: CalendarRange,
+        color: "bg-pink-50 text-pink-600",
+        border: "hover:border-pink-200",
+        href: "/report/distance/daywise",
+    },
+    {
+        id: "over-speed",
+        title: "Over Speed Report",
+        description: "Over-speed events with actual speed vs. the vehicle's limit.",
+        icon: AlertTriangle,
+        color: "bg-red-50 text-red-600",
+        border: "hover:border-red-200",
+        href: "/report/over-speed",
     },
     {
         id: "ignition",
@@ -63,6 +93,15 @@ const reports = [
         href: "/report/stops",
     },
     {
+        id: "stop-distance",
+        title: "Stop Distance Report",
+        description: "Distance of each stop from the trip's starting location.",
+        icon: Signpost,
+        color: "bg-amber-50 text-amber-600",
+        border: "hover:border-amber-200",
+        href: "/report/stop-distance",
+    },
+    {
         id: "attendance",
         title: "Attendance Report",
         description: "Student or driver attendance records per trip.",
@@ -88,15 +127,6 @@ const reports = [
         color: "bg-red-50 text-red-600",
         border: "hover:border-red-200",
         href: "/report/route-deviation",
-    },
-    {
-        id: "halt",
-        title: "Halt Report",
-        description: "Long halt events with location, start time, and duration.",
-        icon: ParkingCircle,
-        color: "bg-slate-50 text-slate-600",
-        border: "hover:border-slate-300",
-        href: "/report/halt",
     },
 ]
 

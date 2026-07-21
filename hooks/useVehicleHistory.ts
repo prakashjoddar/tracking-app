@@ -6,11 +6,23 @@ export function useVehicleHistory(vehicleNo: string, date: string) {
   const setPoints = useHistoryStore((s) => s.setPoints);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      const { data } = await api.get(`/location/history/${vehicleNo}/${date}`);
-      setPoints(data);
+      try {
+        const { data } = await api.get(`/location/history/${vehicleNo}/${date}`);
+        // Guard against a slow, now-stale request resolving after a newer
+        // vehicleNo/date was selected (or the component unmounted).
+        if (!cancelled) setPoints(data);
+      } catch (err) {
+        console.error("Vehicle history fetch error", err);
+      }
     }
 
     load();
-  }, [vehicleNo, date]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleNo, date, setPoints]);
 }

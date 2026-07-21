@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Search, X } from "lucide-react"
+import { toast } from "sonner"
 import { useTripStore } from "@/store/trip-store"
 import { Stop } from "@/lib/types"
 import { saveStop } from "@/lib/api"
@@ -22,9 +23,8 @@ export function PlaceSearch() {
     const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
 
     const setPendingLatLng = useTripStore(s => s.setPendingLatLng)
-    const snapToRoute = useTripStore.getState().snapToRoute
-    const selectedTripId = useTripStore.getState().selectedTripId
-    const addStop = useTripStore.getState().addStop
+    const snapToRoute = useTripStore(s => s.snapToRoute)
+    const addStop = useTripStore(s => s.addStop)
 
 
     const getSessionToken = (): google.maps.places.AutocompleteSessionToken => {
@@ -110,6 +110,7 @@ export function PlaceSearch() {
 
         } catch (e) {
             console.error("Place details error:", e)
+            toast.error("Failed to add stop for this place")
         }
     }
 

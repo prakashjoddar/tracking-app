@@ -10,7 +10,7 @@ type MarkerState = {
   marker: google.maps.marker.AdvancedMarkerElement;
   root: HTMLElement;
 
-  icon: SVGElement | null;
+  icon: HTMLElement | null;
 
   speedEl: HTMLElement | null;
   signalEl: HTMLElement | null;
@@ -18,6 +18,9 @@ type MarkerState = {
   timeEl: HTMLElement | null;
 
   lastUpdate: number;
+
+  /** In-flight requestAnimationFrame id, so a new position update can cancel it. */
+  animationFrameId: number | null;
 };
 
 export class VehicleMarkerManager {
@@ -37,7 +40,7 @@ export class VehicleMarkerManager {
       }),
       onClusterClick: (_, cluster, map) => {
         if (!cluster.bounds) return;
-        map.fitBounds(cluster.bounds);
+        map.fitBounds(cluster.bounds, { top: 80, bottom: 80, left: 80, right: 80 });
       },
     });
   }
@@ -128,7 +131,7 @@ export class VehicleMarkerManager {
     </div>
   `;
 
-    const icon = root.querySelector<SVGElement>(".vehicle-icon");
+    const icon = root.querySelector<HTMLElement>(".vehicle-icon");
     const markerEl = root.querySelector(".vehicle-marker") as HTMLElement;
     const tooltip = root.querySelector(".vehicle-tooltip") as HTMLElement;
 
@@ -164,6 +167,7 @@ export class VehicleMarkerManager {
       satelliteEl,
       timeEl,
       lastUpdate: Date.now(),
+      animationFrameId: null,
     };
   }
 
@@ -172,11 +176,20 @@ export class VehicleMarkerManager {
   // -------------------------------
 
   private animateMarker(
-    marker: google.maps.marker.AdvancedMarkerElement,
+    state: MarkerState,
     toLat: number,
     toLng: number,
     duration = 7000,
   ) {
+    // A new position update can arrive before the previous animation for
+    // this marker finishes — cancel it first, otherwise both loops write to
+    // marker.position concurrently and the marker visibly jitters.
+    if (state.animationFrameId !== null) {
+      cancelAnimationFrame(state.animationFrameId);
+      state.animationFrameId = null;
+    }
+
+    const marker = state.marker;
     const from = marker.position as google.maps.LatLngLiteral;
 
     if (!from) {
@@ -198,10 +211,14 @@ export class VehicleMarkerManager {
 
       marker.position = { lat, lng };
 
-      if (progress < 1) requestAnimationFrame(animate);
+      if (progress < 1) {
+        state.animationFrameId = requestAnimationFrame(animate);
+      } else {
+        state.animationFrameId = null;
+      }
     };
 
-    requestAnimationFrame(animate);
+    state.animationFrameId = requestAnimationFrame(animate);
   }
 
   // -------------------------------
@@ -209,7 +226,10 @@ export class VehicleMarkerManager {
   // -------------------------------
 
   updateVehicles(vehicles: VehicleLocation[]) {
+    const seen = new Set<string>();
+
     vehicles.forEach((vehicle) => {
+      seen.add(vehicle.vehicleNo);
       const existing = this.markers.get(vehicle.vehicleNo);
 
       if (!existing) {
@@ -218,16 +238,38 @@ export class VehicleMarkerManager {
         return;
       }
 
-      // const distance = Math.sqrt(
-      //   Math.pow(vehicle.latitude - prevLat, 2) +
-      //     Math.pow(vehicle.longitude - prevLng, 2),
-      // );
-      // const duration = Math.min(Math.max(distance * 50000, 800), 6000);
-
-      this.animateMarker(existing.marker, vehicle.latitude, vehicle.longitude);
+      this.animateMarker(existing, vehicle.latitude, vehicle.longitude);
       this.updateMarker(existing, vehicle);
       existing.lastUpdate = Date.now();
     });
+
+    // Remove markers for vehicles that dropped out of this update (e.g. left
+    // the fleet view, or the caller passed [] to clear the map entirely).
+    for (const [vehicleNo, state] of this.markers) {
+      if (!seen.has(vehicleNo)) {
+        this.removeMarker(vehicleNo, state);
+      }
+    }
+  }
+
+  // -------------------------------
+  // remove / clear
+  // -------------------------------
+
+  private removeMarker(vehicleNo: string, state: MarkerState) {
+    if (state.animationFrameId !== null) {
+      cancelAnimationFrame(state.animationFrameId);
+    }
+    this.clusterer.removeMarker(state.marker);
+    state.marker.map = null;
+    this.markers.delete(vehicleNo);
+  }
+
+  /** Removes every marker from the map and clusterer — call on unmount. */
+  clear() {
+    for (const [vehicleNo, state] of this.markers) {
+      this.removeMarker(vehicleNo, state);
+    }
   }
 
   private updateMarker(state: MarkerState, vehicle: VehicleLocation) {
@@ -255,7 +297,7 @@ export class VehicleMarkerManager {
       state.marker.zIndex = 9999;
 
       if (state.icon) {
-        state.icon.style.fill = "#2563eb"; // selected color
+        state.icon.style.background = "#2563eb"; // selected color
       }
     } else {
       state.root.classList.remove("vehicle-selected");

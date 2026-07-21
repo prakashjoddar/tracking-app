@@ -23,6 +23,18 @@ export class RouteManager {
 
         this.fullPath = path
 
+        // Clear any previously drawn start/end markers before drawing a new
+        // route — otherwise each redraw (e.g. waypoint change) leaves the old
+        // pair of pins stranded on the map with no reference to remove them.
+        if (this.startMarker) {
+            this.startMarker.map = null
+            this.startMarker = null
+        }
+        if (this.endMarker) {
+            this.endMarker.map = null
+            this.endMarker = null
+        }
+
         // ─── Start marker ───────────────────────────────────────────
         const startPin = new google.maps.marker.PinElement({
             background: "#16a34a",
@@ -30,7 +42,7 @@ export class RouteManager {
             glyph: "S",
             glyphColor: "#fff",
         })
-        new google.maps.marker.AdvancedMarkerElement({
+        this.startMarker = new google.maps.marker.AdvancedMarkerElement({
             map: this.map,
             position: path[0],
             content: startPin.element,
@@ -44,7 +56,7 @@ export class RouteManager {
             glyph: "E",
             glyphColor: "#fff",
         })
-        new google.maps.marker.AdvancedMarkerElement({
+        this.endMarker = new google.maps.marker.AdvancedMarkerElement({
             map: this.map,
             position: path[path.length - 1],
             content: endPin.element,

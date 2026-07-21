@@ -20,12 +20,15 @@ type StopFormProps = {
 type FieldError = Partial<Record<keyof Omit<Stop, "id" | "snapToRoute" | "studentId" | "tripId">, string>>
 type StopFormData = Omit<Stop, "id" | "snapToRoute" | "studentId" | "tripId">
 
+const DEFAULT_RADIUS_METERS = 100
+
 const EMPTY: StopFormData = {
     name: "",
     latitude: 0,
     longitude: 0,
     type: "PICK_DROP",
     enable: true,
+    radiusMeters: DEFAULT_RADIUS_METERS,
 }
 
 // ── outside component — never recreated ──────────────────────────────────────
@@ -84,6 +87,7 @@ export default function StopForm({ setShowMap }: StopFormProps) {
                 longitude: editingStop.longitude,
                 type: editingStop.type,
                 enable: editingStop.enable,
+                radiusMeters: editingStop.radiusMeters ?? DEFAULT_RADIUS_METERS,
             })
             setSelectedStudentIds((editingStop.studentId ?? []).map(String))
         } else {
@@ -156,6 +160,7 @@ export default function StopForm({ setShowMap }: StopFormProps) {
                 latitude: form.latitude,
                 longitude: form.longitude,
                 studentId: selectedStudentIds,
+                radiusMeters: form.radiusMeters,
             })
             toast.success("Stop updated — press Save to persist")
         } else {
@@ -170,6 +175,7 @@ export default function StopForm({ setShowMap }: StopFormProps) {
                 tripId,
                 sequence: stops.length + 1,
                 snapToRoute: true,
+                radiusMeters: form.radiusMeters,
             })
             toast.success("Stop added — press Save to persist")
         }
@@ -311,6 +317,17 @@ export default function StopForm({ setShowMap }: StopFormProps) {
                             />
                         </FormField>
                     </div>
+
+                    <FormField label="Arrival Radius (m)" hint="How close the bus must get to confirm arrival">
+                        <Input
+                            type="number"
+                            min={1}
+                            value={form.radiusMeters ?? DEFAULT_RADIUS_METERS}
+                            onChange={e => set("radiusMeters", parseFloat(e.target.value))}
+                            placeholder={String(DEFAULT_RADIUS_METERS)}
+                            className="font-mono text-xs"
+                        />
+                    </FormField>
 
                     {/* Coords preview pill */}
                     {(form.latitude !== 0 || form.longitude !== 0) && (

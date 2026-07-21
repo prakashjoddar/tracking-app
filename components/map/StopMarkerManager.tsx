@@ -129,6 +129,15 @@ export class StopMarkerManager {
         this.map.setOptions({ draggableCursor: undefined })
     }
 
+    // ─── Focus a single stop (card click) ──────────────────────────────────────
+    zoomToStop(lat: number, lng: number): void {
+        this.map.panTo({ lat, lng })
+        const currentZoom = this.map.getZoom() ?? 0
+        if (currentZoom < 17) {
+            this.map.setZoom(17)
+        }
+    }
+
     // ─── Confirmed stop markers ───────────────────────────────────────────────
     syncStops(stops: Stop[]) {
         for (const [id, marker] of this.markers) {
@@ -147,17 +156,10 @@ export class StopMarkerManager {
 
             const content = this.buildMarkerContent(index + 1, stop.name)
 
-            const pin = new google.maps.marker.PinElement({
-                background: "#2563eb",
-                borderColor: "#1d4ed8",
-                glyph: String(index + 1),
-                glyphColor: "#fff",
-            })
-
             const marker = new google.maps.marker.AdvancedMarkerElement({
                 map: this.map,
                 position: { lat: stop.latitude, lng: stop.longitude },
-                content: pin.element,
+                content,
                 gmpDraggable: true,   // 👈 confirmed stops also draggable
             })
 
@@ -250,5 +252,74 @@ export class StopMarkerManager {
         this.clearPendingMarker()
         for (const marker of this.markers.values()) marker.map = null
         this.markers.clear()
+        this.clearTripStopMarkers()
+    }
+
+    // ─── Read-only trip stops (dashboard — shown while a trip is active) ──────
+    private tripStopMarkers: Map<string, google.maps.marker.AdvancedMarkerElement> = new Map()
+
+    syncTripStopMarkers(stops: Stop[]) {
+        // Ordered by sequence — findByTripId on the backend has no ORDER BY,
+        // so the array order isn't guaranteed to match stop order.
+        const ordered = [...stops].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+
+        for (const [id, marker] of this.tripStopMarkers) {
+            if (!ordered.find(s => s.id === id)) {
+                marker.map = null
+                this.tripStopMarkers.delete(id)
+            }
+        }
+
+        ordered.forEach((stop, index) => {
+            if (this.tripStopMarkers.has(stop.id)) return // fixed trip — position never changes mid-trip
+
+            // Numbered by position in route order, not the raw sequence value —
+            // matches syncStops' approach, so it doesn't matter whether sequence
+            // is 0- or 1-based in the underlying data.
+            const label = `S${index + 1}`
+
+            const marker = new google.maps.marker.AdvancedMarkerElement({
+                map: this.map,
+                position: { lat: stop.latitude, lng: stop.longitude },
+                content: this.buildTripStopContent(label),
+                title: `${label} — ${stop.name}`,
+            })
+
+            this.tripStopMarkers.set(stop.id, marker)
+        })
+    }
+
+    clearTripStopMarkers() {
+        for (const marker of this.tripStopMarkers.values()) marker.map = null
+        this.tripStopMarkers.clear()
+    }
+
+    private buildTripStopContent(label: string): HTMLElement {
+        const el = document.createElement("div")
+        // Shrink the font as the label grows (S1 vs S12 vs S123) so it never
+        // clips the circle instead of just always fitting a single glyph.
+        const fontSize = label.length >= 4 ? 9 : label.length === 3 ? 10.5 : 12
+
+        el.style.cssText = `
+            box-sizing: border-box;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #dc2626;
+            border: 2px solid #7f1d1d;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: ${fontSize}px;
+            font-weight: 700;
+            font-family: system-ui, sans-serif;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+        `
+        el.textContent = label
+        return el
     }
 }

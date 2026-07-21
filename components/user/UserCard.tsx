@@ -2,8 +2,8 @@
 
 import { UserRequestResponse } from "@/lib/types"
 import { useUserManageStore } from "@/store/user-store"
-import { CarFront, ShieldCheck, Phone, Mail, CreditCard, Tag, Pencil, Trash2, Loader2 } from "lucide-react"
-import { deleteUser } from "@/lib/api"
+import { CarFront, ShieldCheck, Phone, Mail, CreditCard, Tag, Pencil, Trash2, Loader2, Car, ListChecks } from "lucide-react"
+import { deleteUser, resolveUserPhotoUrl } from "@/lib/api"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -36,6 +36,7 @@ export function UserCard({ user, isEditing, onEdit }: UserCardProps) {
     }
 
     const isDriver = user.type === "DRIVER"
+    const photoUrl = resolveUserPhotoUrl(user.photoUrl)
 
     const roleStyle = isDriver
         ? "bg-green-100 text-green-700 border-green-200"
@@ -50,12 +51,17 @@ export function UserCard({ user, isEditing, onEdit }: UserCardProps) {
             <div className="p-3.5">
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className={cn("p-2 rounded-lg border shrink-0", roleStyle)}>
-                            {isDriver
-                                ? <CarFront className="w-3.5 h-3.5 text-green-600" />
-                                : <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                            }
-                        </div>
+                        {photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={photoUrl} alt="" className="size-8 rounded-lg object-cover border shrink-0" />
+                        ) : (
+                            <div className={cn("p-2 rounded-lg border shrink-0", roleStyle)}>
+                                {isDriver
+                                    ? <CarFront className="w-3.5 h-3.5 text-green-600" />
+                                    : <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                                }
+                            </div>
+                        )}
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-900 truncate">
                                 {user.firstName} {user.lastName}
@@ -93,6 +99,26 @@ export function UserCard({ user, isEditing, onEdit }: UserCardProps) {
                         <div className="flex items-center gap-1.5 text-xs text-slate-500">
                             <Tag className="w-3 h-3 text-slate-400 shrink-0" />
                             <span className="font-mono">{user.rfid}</span>
+                        </div>
+                    )}
+                    {user.type === "SUB_ORG" && (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 col-span-2">
+                            <Car className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>
+                                {(user.vehicleIds?.length || user.vehicleGroupIds?.length)
+                                    ? `${user.vehicleIds?.length ?? 0} vehicle${(user.vehicleIds?.length ?? 0) === 1 ? "" : "s"} · ${user.vehicleGroupIds?.length ?? 0} group${(user.vehicleGroupIds?.length ?? 0) === 1 ? "" : "s"}`
+                                    : "All vehicles (unrestricted)"}
+                            </span>
+                        </div>
+                    )}
+                    {user.type === "SUB_ORG" && (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 col-span-2">
+                            <ListChecks className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>
+                                {user.allowedMenus?.length
+                                    ? `${user.allowedMenus.length} menu${user.allowedMenus.length === 1 ? "" : "s"} allowed`
+                                    : "All menus (unrestricted)"}
+                            </span>
                         </div>
                     )}
                 </div>

@@ -13,12 +13,12 @@ import { cn } from "@/lib/utils"
 import { useVehicleStore } from "@/store/location-store"
 import { useMapsStore } from "@/store/maps-store"
 import { useHistoryStore } from "@/store/history-store"
-import { fetchVehicleLocationHistory } from "@/lib/api"
+import { fetchVehicleLocationHistory, fetchVehicleGroups } from "@/lib/api"
 import {
   ArrowDownAZ, ArrowUpAZ, ArrowUpDown,
   CalendarArrowDown, CalendarArrowUp,
   Check, ChevronLeft, ChevronRight,
-  Search, X, Locate
+  Layers, Search, X, Locate
 } from "lucide-react"
 import * as React from "react"
 import { useState } from "react"
@@ -36,7 +36,6 @@ const STATUS_TABS: { value: StatusFilter; label: string; color: string }[] = [
   { value: "STOPPED", label: "Stopped", color: "text-orange-600" },
   { value: "PARKED", label: "Parked", color: "text-red-600" },
   { value: "TRIP", label: "Trip", color: "text-purple-600" },
-  { value: "OFFLINE", label: "Offline", color: "text-gray-400" },
 ]
 
 function getLocationFromIP(): Promise<{ lat: number; lng: number } | null> {
@@ -58,7 +57,11 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
   const [onLeft, setOnLeft] = useState<boolean>(true)
 
-  useVehicleLocations()
+  const {
+    vehicleGroups, setVehicleGroups, selectedGroupId, setSelectedGroupId,
+  } = useMapsStore()
+
+  useVehicleLocations(true, selectedGroupId)
   const vehicles = useVehicleStore(s => s.vehicles)
   const setLocationHistory = useVehicleStore(s => s.setLocationHistory)
 
@@ -71,6 +74,10 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     isPanelVisible, setPanelVisible,
     followVehicleId, setFollowVehicle, setAutoFocus,
   } = useMapsStore()
+
+  React.useEffect(() => {
+    fetchVehicleGroups().then(setVehicleGroups).catch(() => {})
+  }, [])
 
   // ── location helpers ──────────────────────────────────────────
   const requestLocation = React.useCallback(async () => {
@@ -132,8 +139,12 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
   }
 
   // ── filtering ─────────────────────────────────────────────────
+  const selectedGroup = vehicleGroups.find(g => g.id === selectedGroupId)
+
+  // Group scoping happens server-side (useVehicleLocations passes selectedGroupId
+  // to the API) so `vehicles` already only contains the selected group's fleet.
   const filtered = vehicles
-    .filter(v => statusFilter === "ALL" || v.status === statusFilter)
+    .filter(v => statusFilter === "ALL" || (statusFilter === "TRIP" ? v.tripActive : v.status === statusFilter))
     .filter(v => !searchQuery || v.vehicleNo.toLowerCase().includes(searchQuery.toLowerCase()) || v.label.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
       if (sortBy === "date-newest" || sortBy === "date-oldest") {
@@ -156,7 +167,9 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     })
 
   const getCount = (s: StatusFilter) =>
-    s === "ALL" ? vehicles.length : vehicles.filter(v => v.status === s).length
+    s === "ALL" ? vehicles.length
+      : s === "TRIP" ? vehicles.filter(v => v.tripActive).length
+        : vehicles.filter(v => v.status === s).length
 
   // ── closed state ──────────────────────────────────────────────
   if (!isPanelVisible) {
@@ -272,6 +285,44 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn("size-8 shrink-0 relative", selectedGroupId && "border-blue-500 text-blue-600")}
+                title="Filter by group"
+              >
+                <Layers size={13} />
+                {selectedGroupId && (
+                  <span className="absolute -top-1 -right-1 size-2 rounded-full bg-blue-500" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem
+                onClick={() => setSelectedGroupId(null)}
+                className="gap-2 text-xs"
+              >
+                <span className="flex-1">All Vehicles</span>
+                {!selectedGroupId && <Check size={12} />}
+              </DropdownMenuItem>
+              {vehicleGroups.map(group => (
+                <DropdownMenuItem
+                  key={group.id}
+                  onClick={() => setSelectedGroupId(group.id)}
+                  className="gap-2 text-xs"
+                >
+                  <span className="flex-1 truncate">{group.name}</span>
+                  <span className="text-[10px] px-1 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">
+                    {group.vehicleNumbers.length}
+                  </span>
+                  {selectedGroupId === group.id && <Check size={12} />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="size-8 shrink-0">
                 <ArrowUpDown size={13} />
               </Button>
@@ -296,6 +347,20 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* ── Active group chip ─────────────────────── */}
+        {selectedGroup && (
+          <div className="shrink-0 px-3 pb-2 flex items-center">
+            <button
+              onClick={() => setSelectedGroupId(null)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+            >
+              <Layers size={11} />
+              {selectedGroup.name}
+              <X size={11} />
+            </button>
+          </div>
+        )}
 
         {/* ── Vehicle list ──────────────────────────── */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-2.5 space-y-2">

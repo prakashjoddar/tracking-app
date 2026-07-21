@@ -75,11 +75,21 @@ export function VehicleCard({
                 <div className="flex items-start gap-2.5">
 
                     {/* Icon */}
-                    <div className={cn(
-                        "size-9 shrink-0 rounded-lg flex items-center justify-center border",
-                        status.bg
-                    )}>
-                        <IoMdBus className={cn("size-5", status.text)} />
+                    <div className="relative shrink-0">
+                        <div className={cn(
+                            "size-9 rounded-lg flex items-center justify-center border",
+                            status.bg
+                        )}>
+                            <IoMdBus className={cn("size-5", status.text)} />
+                        </div>
+                        {location.tripActive && (
+                            <div
+                                title="Trip active"
+                                className="absolute -bottom-1 -right-1 size-4 rounded-full bg-purple-500 border-2 border-white flex items-center justify-center"
+                            >
+                                <RiRoadMapLine size={8} className="text-white" />
+                            </div>
+                        )}
                     </div>
 
                     {/* Label + time */}
@@ -140,8 +150,14 @@ export function VehicleCard({
                         <span>{location.noOfSatellites ?? "—"}</span>
                     </div>
 
-                    {/* Status badge — pushed right */}
-                    <div className="ml-auto">
+                    {/* Trip + status badges — pushed right */}
+                    <div className="ml-auto flex items-center gap-1">
+                        {location.tripActive && (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-purple-50 border-purple-200 text-purple-700">
+                                <RiRoadMapLine size={10} />
+                                Trip
+                            </span>
+                        )}
                         <span className={cn(
                             "text-[10px] font-semibold px-1.5 py-0.5 rounded-full border",
                             status.bg, status.text
@@ -150,6 +166,26 @@ export function VehicleCard({
                         </span>
                     </div>
                 </div>
+
+                {/* ── Stop progress (active trip only) ────────── */}
+                {location.tripActive && !!location.totalStops && (
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-purple-100 overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-purple-500 transition-all"
+                                style={{
+                                    width: `${Math.min(
+                                        ((location.completedStops ?? 0) / location.totalStops) * 100,
+                                        100,
+                                    )}%`,
+                                }}
+                            />
+                        </div>
+                        <span className="shrink-0 text-[11px] font-medium text-purple-700 tabular-nums">
+                            {location.completedStops ?? 0}/{location.totalStops} stops
+                        </span>
+                    </div>
+                )}
 
                 {/* ── Expanded actions (selected only) ────────── */}
                 {isSelected && (

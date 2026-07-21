@@ -6,7 +6,7 @@ import { TripCard } from "./TripCard"
 import { WaypointInitModal } from "./WaypointInitModal"
 import { SearchableSelect } from "../ui/searchable-select"
 import { useVehicleManageStore } from "@/store/vehicle-store"
-import { fetchTrips, deleteTrip, fetchVehicles, fetchStops, initializeWaypoint } from "@/lib/api"
+import { fetchTrips, deleteTrip, cloneTrip, fetchVehicles, fetchStops, initializeWaypoint } from "@/lib/api"
 import { Search, Plus, RefreshCw, Bus } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
@@ -26,7 +26,7 @@ export default function TripListPanel({ onAddNew, onEdit }: TripListPanelProps) 
   const {
     trips, selectedTripId, editingTripId, tripsLoading,
     setTrips, setStops, setSelectedTripId, setEditingTripId,
-    setTripsLoading, removeTrip, updateTrip, setSelectedVehicleId, selectedVehicleId
+    setTripsLoading, removeTrip, updateTrip, addTrip, setSelectedVehicleId, selectedVehicleId
   } = useTripStore()
 
   // Bootstrap vehicle list when navigating directly to /trip
@@ -84,6 +84,17 @@ export default function TripListPanel({ onAddNew, onEdit }: TripListPanelProps) 
       removeTrip(id)
     } catch (e) {
       console.error("Delete trip failed:", e)
+    }
+  }
+
+  const handleClone = async (id: string): Promise<void> => {
+    try {
+      const cloned = await cloneTrip(id)
+      addTrip(cloned)
+      toast.success("Trip cloned successfully.")
+    } catch (e: any) {
+      console.error("Clone trip failed:", e)
+      toast.error(e.response?.data?.message || "Failed to clone trip.")
     }
   }
 
@@ -183,6 +194,7 @@ export default function TripListPanel({ onAddNew, onEdit }: TripListPanelProps) 
             onEdit={() => handleEdit(trip.id)}
             onDelete={() => handleDelete(trip.id)}
             onInitialize={() => setInitTripId(trip.id)}
+            onClone={() => handleClone(trip.id)}
           />
         ))}
       </div>

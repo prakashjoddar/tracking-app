@@ -2,7 +2,7 @@
 
 import { Stop } from "@/lib/types"
 import { useTripStore } from "@/store/trip-store"
-import { MapPin, Pencil, Trash2, Navigation } from "lucide-react"
+import { MapPin, Pencil, Trash2, Navigation, Users } from "lucide-react"
 
 type StopCardProps = {
     stop: Stop
@@ -22,22 +22,32 @@ export function StopCard({ stop, index }: StopCardProps) {
     const setPendingLatLng = useTripStore(s => s.setPendingLatLng)
     const editingStopId = useTripStore(s => s.editingStopId)
     const setEditingStopId = useTripStore(s => s.setEditingStopId)
+    const requestStopFocus = useTripStore(s => s.requestStopFocus)
 
     const isEditing = editingStopId === stop.id
     const typeInfo = TYPE_STYLES[stop.type] ?? TYPE_STYLES.PICK_DROP
 
-    const handleEdit = (): void => {
+    const handleCardClick = (): void => {
+        setShowMapOrStopForm(true)
+        requestStopFocus(stop.id)
+    }
+
+    const handleEdit = (e: React.MouseEvent): void => {
+        e.stopPropagation()
         setEditingStopId(stop.id)
         setPendingLatLng({ lat: stop.latitude, lng: stop.longitude })
         setShowMapOrStopForm(false)
     }
 
-    const handleDelete = (): void => {
+    const handleDelete = (e: React.MouseEvent): void => {
+        e.stopPropagation()
         markStopDeleted(stop.id)
     }
 
     return (
-        <div className={`rounded-xl border p-3.5 shadow-sm transition-all
+        <div
+            onClick={handleCardClick}
+            className={`rounded-xl border p-3.5 shadow-sm transition-all cursor-pointer
             ${isEditing
                 ? "border-blue-500 bg-blue-50 shadow-md"
                 : "bg-white hover:shadow-md hover:border-gray-300"
@@ -68,9 +78,21 @@ export function StopCard({ stop, index }: StopCardProps) {
             </div>
 
             {/* Coordinates */}
-            <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-gray-400 font-mono">
-                <Navigation size={10} className="shrink-0" />
-                <span>{stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}</span>
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-mono min-w-0">
+                    <Navigation size={10} className="shrink-0" />
+                    <span className="truncate">{stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}</span>
+                </div>
+                <span
+                    title={`${stop.studentId.length} student${stop.studentId.length === 1 ? "" : "s"} assigned`}
+                    className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${stop.studentId.length > 0
+                        ? "bg-indigo-100 text-indigo-600"
+                        : "bg-gray-100 text-gray-400"
+                        }`}
+                >
+                    <Users size={10} />
+                    {stop.studentId.length}
+                </span>
             </div>
 
             {/* Actions */}

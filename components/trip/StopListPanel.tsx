@@ -28,7 +28,8 @@ export default function StopListPanel() {
         clearDeletedStops()
         setStopsLoading(true)
         const data = await fetchStops(tripId)
-        setStops(data.map(s => ({ ...s, snapToRoute: true })))
+        const sorted = [...data].sort((a, b) => (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER))
+        setStops(sorted.map(s => ({ ...s, snapToRoute: true })))
       } catch (e) {
         console.error("Failed to load stops:", e)
       } finally {
@@ -63,10 +64,12 @@ export default function StopListPanel() {
           studentId: stop.studentId ?? [],
           tripId,
           sequence: index + 1,
+          radiusMeters: stop.radiusMeters,
         }))
         const results = await saveStops(payload)
-        // Replace local stops with server-returned list (resolves temp IDs)
-        setStops(results.map(s => ({ ...s, snapToRoute: true })))
+        // Replace local stops with server-returned list (resolves temp IDs), sorted by sequence
+        const sorted = [...results].sort((a, b) => (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER))
+        setStops(sorted.map(s => ({ ...s, snapToRoute: true })))
       }
 
       toast.success("Stops saved")
