@@ -197,6 +197,8 @@ export type UserRequestResponse = {
   vehicleIds?: string[];
   vehicleGroupIds?: string[];
   allowedMenus?: string[];
+  mapProvider?: "GOOGLE" | "MAPLIBRE";
+  placeSearchProvider?: "GOOGLE" | "OSM";
 };
 
 export type MenuKey =

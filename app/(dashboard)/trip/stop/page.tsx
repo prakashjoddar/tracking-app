@@ -1,14 +1,19 @@
 "use client"
 
-import { GoogleMapView } from "@/components/map/GoogleMapView"
+import { MapEngine } from "@/components/map/MapEngine"
 import StopForm from "@/components/trip/StopForm"
 import StopListPanel from "@/components/trip/StopListPanel"
 import { useTripStore } from "@/store/trip-store"
+import { useCurrentUserStore } from "@/store/current-user-store"
 import { useEffect } from "react"
 
 export default function StopsPage() {
 
     const { showMapOrStopForm, setShowMapOrStopForm } = useTripStore()
+
+    const mapProvider = useCurrentUserStore(s => s.user?.mapProvider) === "MAPLIBRE" ? "maplibre" : "google"
+    const fetchCurrentUserOnce = useCurrentUserStore(s => s.fetchCurrentUserOnce)
+    useEffect(() => { fetchCurrentUserOnce() }, [fetchCurrentUserOnce])
 
     useEffect(() => {
         return () => {
@@ -29,7 +34,7 @@ export default function StopsPage() {
 
                 {/* Map — always mounted, hidden when form is shown */}
                 <div className={`absolute inset-0 ${showMapOrStopForm ? "visible" : "invisible"}`}>
-                    <GoogleMapView />
+                    <MapEngine provider={mapProvider} />
                 </div>
 
                 {/* Form — always mounted, hidden when map is shown */}

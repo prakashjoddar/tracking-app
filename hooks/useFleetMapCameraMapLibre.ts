@@ -1,0 +1,70 @@
+import { useEffect } from "react";
+import maplibregl from "maplibre-gl";
+import { VehicleLocation } from "@/lib/types";
+
+type Props = {
+  map: maplibregl.Map | null;
+  vehicles: VehicleLocation[];
+  followVehicleId: string | null;
+  activeVehicleId: string | null;
+  autoFocus: boolean;
+};
+
+/** MapLibre port of hooks/useFleetMapCamera.ts — same behavior/API. */
+function shouldRecenterMap(map: maplibregl.Map, lat: number, lng: number) {
+  const bounds = map.getBounds();
+  if (!bounds) return true;
+
+  const ne = bounds.getNorthEast();
+  const sw = bounds.getSouthWest();
+
+  const latRange = ne.lat - sw.lat;
+  const lngRange = ne.lng - sw.lng;
+
+  const safeLatMin = sw.lat + latRange * 0.3;
+  const safeLatMax = ne.lat - latRange * 0.3;
+
+  const safeLngMin = sw.lng + lngRange * 0.3;
+  const safeLngMax = ne.lng - lngRange * 0.3;
+
+  return (
+    lat < safeLatMin || lat > safeLatMax || lng < safeLngMin || lng > safeLngMax
+  );
+}
+
+export function useFleetMapCameraMapLibre({
+  map,
+  vehicles,
+  followVehicleId,
+  activeVehicleId,
+  autoFocus,
+}: Props) {
+  useEffect(() => {
+    if (!map || !autoFocus) return;
+
+    const targetVehicle =
+      vehicles.find((v) => v.vehicleNo === followVehicleId) ||
+      vehicles.find((v) => v.vehicleNo === activeVehicleId);
+
+    if (!targetVehicle) return;
+
+    const zoom = map.getZoom() || 5;
+
+    const centerNeeded = shouldRecenterMap(
+      map,
+      targetVehicle.latitude,
+      targetVehicle.longitude,
+    );
+
+    const zoomNeeded = zoom < 16;
+
+    if (centerNeeded || zoomNeeded) {
+      map.easeTo({
+        center: centerNeeded
+          ? [targetVehicle.longitude, targetVehicle.latitude]
+          : map.getCenter(),
+        zoom: zoomNeeded ? 16 : zoom,
+      });
+    }
+  }, [map, vehicles, followVehicleId, activeVehicleId, autoFocus]);
+}

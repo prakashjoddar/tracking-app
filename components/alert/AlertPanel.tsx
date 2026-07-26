@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { fetchTripAlerts, fetchVehicleAlerts } from "@/lib/api"
 import { Alert, AlertType, VehicleAlert, VehicleAlertType } from "@/lib/types"
 import {
@@ -101,6 +102,7 @@ const TRIP_COLS = "220px 200px 170px minmax(0,1fr)"
 const VEHICLE_COLS = "220px 200px 150px 110px minmax(0,1fr)"
 
 export function AlertPanel() {
+    const router = useRouter()
     const [tab, setTab] = useState<Tab>("vehicle")
 
     const [tripAlerts, setTripAlerts] = useState<Alert[]>([])
@@ -195,6 +197,18 @@ export function AlertPanel() {
         setTripPage(0)
         setVehiclePage(0)
     }
+
+    // Deep-link from the Dashboard's vehicle card ("Alerts" button): ?vehicleNo=<no> — this
+    // filter is already keyed by vehicleNo (see vehicleOptions below), so no id resolution is
+    // needed. Runs once per page load.
+    const handledDeepLink = useRef(false)
+    useEffect(() => {
+        if (handledDeepLink.current) return
+        const vehicleNo = new URLSearchParams(window.location.search).get("vehicleNo")
+        if (vehicleNo) handleVehicleFilterChange(vehicleNo)
+        handledDeepLink.current = true
+        router.replace("/alert", { scroll: false })
+    }, [])
 
     const handlePageSizeChange = (size: number) => {
         setPageSize(size)

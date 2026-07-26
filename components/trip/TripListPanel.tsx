@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTripStore } from "@/store/trip-store"
 import { TripCard } from "./TripCard"
 import { WaypointInitModal } from "./WaypointInitModal"
@@ -8,7 +8,7 @@ import { SearchableSelect } from "../ui/searchable-select"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { fetchTrips, deleteTrip, cloneTrip, fetchVehicles, fetchStops, initializeWaypoint } from "@/lib/api"
 import { Search, Plus, RefreshCw, Bus } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 type TripListPanelProps = {
@@ -22,6 +22,7 @@ export default function TripListPanel({ onAddNew, onEdit }: TripListPanelProps) 
   const [initTripId, setInitTripId] = useState<string | null>(null)
   const { vehicles, setVehicles } = useVehicleManageStore()
   const pathname = usePathname()
+  const router = useRouter()
 
   const {
     trips, selectedTripId, editingTripId, tripsLoading,
@@ -77,6 +78,20 @@ export default function TripListPanel({ onAddNew, onEdit }: TripListPanelProps) 
       setTrips([])
     }
   }
+
+  // Deep-link from the Dashboard's vehicle card ("Trip" button): ?vehicleNo=<no> — resolved to
+  // this vehicle's id once the vehicle list above has loaded, then selected exactly as if the
+  // user picked it from the dropdown themselves. Runs once per page load.
+  const handledDeepLink = useRef(false)
+  useEffect(() => {
+    if (handledDeepLink.current) return
+    const vehicleNo = new URLSearchParams(window.location.search).get("vehicleNo")
+    if (!vehicleNo || vehicles.length === 0) return
+    const match = vehicles.find(v => v.number === vehicleNo)
+    if (match) handleVehicleChange(match.id)
+    handledDeepLink.current = true
+    router.replace("/trip", { scroll: false })
+  }, [vehicles])
 
   const handleDelete = async (id: string): Promise<void> => {
     try {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { VehicleLocation } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Bell, Edit, Heart, Route, Navigation } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { BiSignal1, BiSignal2, BiSignal3, BiSignal4, BiSignal5 } from "react-icons/bi"
 import { IoRocketSharp } from "react-icons/io5"
 import { LiaSatelliteDishSolid } from "react-icons/lia"
@@ -57,6 +58,11 @@ export function VehicleCard({
 
     const status = STATUS_CONFIG[location.status] ?? STATUS_CONFIG.OFFLINE
     const speed = SPEED_COLOR(location.speed ?? 0)
+    const router = useRouter()
+
+    // vehicleNo is all the target pages need — each resolves it to its own internal id once its
+    // own vehicle list has loaded (see the `vehicleNo` query-param effects on those pages).
+    const goTo = (path: string) => router.push(`${path}?vehicleNo=${encodeURIComponent(location.vehicleNo)}`)
 
     return (
         <div
@@ -193,14 +199,14 @@ export function VehicleCard({
 
                         <div className="flex items-center gap-1.5 flex-wrap">
                             {[
-                                { label: "Edit", icon: <Edit size={12} className="text-orange-500" />, hover: "hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600" },
-                                { label: "Trip", icon: <RiRoadMapLine size={12} className="text-blue-500" />, hover: "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600" },
-                                { label: "Replace", icon: <MdOutlineSync size={12} className="text-green-500" />, hover: "hover:bg-green-50 hover:border-green-300 hover:text-green-600" },
-                                { label: "Alerts", icon: <Bell size={12} className="text-red-500" />, hover: "hover:bg-red-50 hover:border-red-300 hover:text-red-600" },
-                            ].map(({ label, icon, hover }) => (
+                                { label: "Edit", icon: <Edit size={12} className="text-orange-500" />, hover: "hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600", onSelect: () => goTo("/vehicle") },
+                                { label: "Trip", icon: <RiRoadMapLine size={12} className="text-blue-500" />, hover: "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600", onSelect: () => goTo("/trip") },
+                                { label: "Replace", icon: <MdOutlineSync size={12} className="text-green-500" />, hover: "hover:bg-green-50 hover:border-green-300 hover:text-green-600", onSelect: undefined },
+                                { label: "Alerts", icon: <Bell size={12} className="text-red-500" />, hover: "hover:bg-red-50 hover:border-red-300 hover:text-red-600", onSelect: () => goTo("/alert") },
+                            ].map(({ label, icon, hover, onSelect }) => (
                                 <button
                                     key={label}
-                                    onClick={e => e.stopPropagation()}
+                                    onClick={e => { e.stopPropagation(); onSelect?.() }}
                                     className={cn(
                                         "flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-lg border bg-white text-gray-600 transition-colors",
                                         hover

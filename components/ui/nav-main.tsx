@@ -6,6 +6,7 @@ import {
   GraduationCap,
   Layers,
   LucideBellRing,
+  Map as MapIcon,
   Route,
   Settings,
   type LucideIcon,
@@ -248,6 +249,10 @@ export function NavMain({
       allowedMenus!.includes(item.menuKey),
   );
 
+  // SUPER manages every organisation's map/place-search provider here — not a restrictable
+  // MenuKey since it never applies to SUB_ORG and shouldn't appear as a Menu Access checkbox.
+  const showMapSettings = userType === "SUPER";
+
   return (
     <SidebarGroup className="p-0">
       <SidebarGroupLabel className="px-0 h-6">
@@ -273,6 +278,17 @@ export function NavMain({
               {/* <SidebarMenuBadge>""</SidebarMenuBadge> */}
             </SidebarMenuItem>
           ))}
+
+          {showMapSettings && (
+            <SidebarMenuItem key="Map Settings">
+              <SidebarMenuButton asChild className="h-7">
+                <Link href="/map-settings">
+                  <MapIcon className="size-4 mr-1" style={{ color: menuColors[6] }} />
+                  <span className="text-sm">Map Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
 
           {items.map((item) => (
             <Collapsible

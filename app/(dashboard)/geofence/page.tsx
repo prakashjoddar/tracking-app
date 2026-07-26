@@ -1,14 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { GoogleMapView } from "@/components/map/GoogleMapView"
+import { MapEngine } from "@/components/map/MapEngine"
 import { GeofenceListPanel } from "@/components/geofence/GeofenceListPanel"
 import { GeofenceForm } from "@/components/geofence/GeofenceForm"
 import { useGeofenceStore } from "@/store/geofence-store"
+import { useCurrentUserStore } from "@/store/current-user-store"
 
 export default function GeofencePage() {
     const { setEditingGeofence, editingGeofenceId } = useGeofenceStore()
     const [formMode, setFormMode] = useState<"add" | "edit" | null>(null)
+
+    const mapProvider = useCurrentUserStore(s => s.user?.mapProvider) === "MAPLIBRE" ? "maplibre" : "google"
+    const fetchCurrentUserOnce = useCurrentUserStore(s => s.fetchCurrentUserOnce)
+    useEffect(() => { fetchCurrentUserOnce() }, [fetchCurrentUserOnce])
 
     // Open edit form when a geofence is selected from the map marker click
     useEffect(() => {
@@ -46,7 +51,7 @@ export default function GeofencePage() {
 
             {/* RIGHT — map always visible */}
             <div className="flex-1 relative h-full">
-                <GoogleMapView />
+                <MapEngine provider={mapProvider} />
 
                 {/* Hint banner when placing */}
                 {formMode && (

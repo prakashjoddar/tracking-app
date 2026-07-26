@@ -6,6 +6,8 @@ import { useGeofenceStore } from "@/store/geofence-store"
 import { Input } from "@/components/ui/input"
 import { Save, Circle, MapPin, Navigation, Tag, X, Loader2, LocateFixed } from "lucide-react"
 import { saveGeofence } from "@/lib/api"
+import { PlaceSearchSession, PlaceSuggestion } from "@/lib/geocoding"
+import { useCurrentUserStore } from "@/store/current-user-store"
 import { toast } from "sonner"
 
 type Mode = "add" | "edit"
@@ -59,23 +61,14 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
     const [errors, setErrors] = useState<Partial<Record<keyof Geofence, string>>>({})
 
     const [searchQuery, setSearchQuery] = useState<string>("")
-    const [suggestions, setSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
+    const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false)
     const mapSyncDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
 
-    // Google bills Places Autocomplete per-session only when the same token is
-    // reused across the full type-ahead + place-details sequence — mint one
-    // per search session, not per keystroke.
-    const getSessionToken = (): google.maps.places.AutocompleteSessionToken => {
-        if (!sessionTokenRef.current) {
-            sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
-        }
-        return sessionTokenRef.current
-    }
-
-    const resetSessionToken = (): void => {
-        sessionTokenRef.current = null
+    const placeSearchProvider = useCurrentUserStore(s => s.user?.placeSearchProvider) ?? "GOOGLE"
+    const sessionRef = useRef<PlaceSearchSession | null>(null)
+    if (!sessionRef.current || sessionRef.current.provider !== placeSearchProvider) {
+        sessionRef.current = new PlaceSearchSession(placeSearchProvider)
     }
 
     // Load editing data
@@ -121,30 +114,6 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
         }
     }, [pendingLatLng])
 
-    // Google Places Search init
-    // useEffect(() => {
-    //     if (!searchInputRef.current || !window.google) return
-
-    //     const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-    //         fields: ["geometry", "formatted_address", "name"]
-    //     })
-
-    //     autocomplete.addListener("place_changed", () => {
-    //         const place = autocomplete.getPlace()
-    //         if (place.geometry?.location) {
-    //             setForm(prev => ({
-    //                 ...prev,
-    //                 latitude: place.geometry!.location!.lat(),
-    //                 longitude: place.geometry!.location!.lng(),
-    //                 address: place.formatted_address || place.name || prev.address
-    //             }))
-    //         }
-    //     })
-    // }, [])
-
-    // Remove the useEffect with new google.maps.places.Autocomplete(...)
-    // Replace with the same pattern as PlaceSearch.tsx
-
     useEffect(() => {
         if (!searchQuery || searchQuery.length < 2) {
             setSuggestions([])
@@ -154,18 +123,8 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
 
         const fetch = async (): Promise<void> => {
             try {
-                const { suggestions } = await google.maps.places.AutocompleteSuggestion
-                    .fetchAutocompleteSuggestions({ input: searchQuery, sessionToken: getSessionToken() })
-
-                setSuggestions(
-                    suggestions
-                        .filter(s => s.placePrediction != null)
-                        .map(s => ({
-                            placeId: s.placePrediction!.placeId,
-                            mainText: s.placePrediction!.mainText?.text ?? "",
-                            secondaryText: s.placePrediction!.secondaryText?.text ?? "",
-                        }))
-                )
+                const results = await sessionRef.current!.search(searchQuery)
+                setSuggestions(results)
                 setShowSuggestions(true)
             } catch (e) {
                 console.error("Autocomplete error:", e)
@@ -176,22 +135,16 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
         return () => clearTimeout(debounce)
     }, [searchQuery])
 
-    const handleSelectPlace = async (placeId: string, mainText: string): Promise<void> => {
+    const handleSelectPlace = async (suggestion: PlaceSuggestion): Promise<void> => {
         try {
-            const place = new google.maps.places.Place({ id: placeId })
-            await place.fetchFields({ fields: ["location", "displayName", "formattedAddress"] })
-
-            const lat = place.location?.lat()
-            const lng = place.location?.lng()
-            if (lat == null || lng == null) return
-
-            resetSessionToken()
+            const resolved = await sessionRef.current!.resolve(suggestion)
+            if (!resolved) return
 
             setForm(prev => ({
                 ...prev,
-                latitude: lat,
-                longitude: lng,
-                address: place.formattedAddress ?? mainText,
+                latitude: resolved.lat,
+                longitude: resolved.lng,
+                address: resolved.displayName,
             }))
             setSearchQuery("")
             setSuggestions([])
@@ -293,20 +246,6 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
 
                 <Section icon={<Navigation size={12} />} title="Location & Bounds">
                     <div className="md:col-span-2">
-                        {/* <FormField label="Search Location">
-                            <div className="relative">
-                                <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 size-3.5" />
-                                <Input
-                                    ref={searchInputRef}
-                                    placeholder="Search for a place..."
-                                    className="h-8 text-xs pl-8 pr-16"
-                                />
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                    <span className="text-[9px] text-gray-300 font-bold px-1.5 py-0.5 border border-gray-100 rounded">SEARCH</span>
-                                </div>
-                            </div>
-                        </FormField> */}
-
                         <FormField label="Search Location">
                             <div className="relative">
                                 <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 size-3.5 z-10" />
@@ -321,15 +260,24 @@ export function GeofenceForm({ mode, onClose }: GeofenceFormProps) {
                                     <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
                                         {suggestions.map(s => (
                                             <button
-                                                key={s.placeId}
+                                                key={s.id}
                                                 type="button"
-                                                onClick={() => handleSelectPlace(s.placeId, s.mainText)}
+                                                onClick={() => handleSelectPlace(s)}
                                                 className="w-full text-left px-3 py-2 hover:bg-gray-50 flex flex-col border-b last:border-b-0"
                                             >
                                                 <span className="text-xs font-medium text-gray-800">{s.mainText}</span>
                                                 <span className="text-[10px] text-gray-400">{s.secondaryText}</span>
                                             </button>
                                         ))}
+                                        {placeSearchProvider === "GOOGLE" && (
+                                            <div className="flex justify-end px-2 py-1 bg-gray-50">
+                                                <img
+                                                    src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png"
+                                                    alt="Powered by Google"
+                                                    className="h-3.5"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

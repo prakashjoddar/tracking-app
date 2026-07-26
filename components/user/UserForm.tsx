@@ -5,7 +5,7 @@ import { UserRequestResponse, UserType, VehicleGroupEntry } from "@/lib/types"
 import { useUserManageStore } from "@/store/user-store"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { Input } from "@/components/ui/input"
-import { Save, User, Mail, Lock, X, Loader2, Eye, EyeOff, CreditCard, ShieldCheck, Camera, Car, Layers, Check, Bus, ListChecks } from "lucide-react"
+import { Save, User, Mail, Lock, X, Loader2, Eye, EyeOff, CreditCard, ShieldCheck, Camera, Car, Layers, Check, Bus, ListChecks, Map as MapIcon, Search } from "lucide-react"
 import { saveUser, uploadUserPhoto, resolveUserPhotoUrl, fetchVehicleGroups } from "@/lib/api"
 import { MENU_ITEMS } from "@/lib/menu-items"
 import { toast } from "sonner"
@@ -33,6 +33,8 @@ const makeDefault = (type: UserType): UserRequestResponse => ({
     vehicleIds: [],
     vehicleGroupIds: [],
     allowedMenus: [],
+    mapProvider: "GOOGLE",
+    placeSearchProvider: "GOOGLE",
 })
 
 // ── outside component — stable references, no remount on re-render ────────────
@@ -72,6 +74,7 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const isSubOrg = form.type === "SUB_ORG"
+    const isOrg = form.type === "ORG"
     const { vehicles, fetchVehicles } = useVehicleManageStore()
     const [groups, setGroups] = useState<VehicleGroupEntry[]>([])
     useEffect(() => {
@@ -142,6 +145,8 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
                     vehicleIds: current.vehicleIds || [],
                     vehicleGroupIds: current.vehicleGroupIds || [],
                     allowedMenus: current.allowedMenus || [],
+                    mapProvider: current.mapProvider || "GOOGLE",
+                    placeSearchProvider: current.placeSearchProvider || "GOOGLE",
                 })
                 setPhotoPreview(resolveUserPhotoUrl(current.photoUrl))
             }
@@ -401,6 +406,50 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
                                     </button>
                                 )
                             })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Map Settings — ORG only, configured by SUPER */}
+                {isOrg && (
+                    <div>
+                        <SectionHeader icon={<MapIcon className="w-4 h-4" />} title="Map Settings" />
+                        <p className="text-xs text-slate-400 -mt-2 mb-3">
+                            Controls which map renderer and place-search provider this organisation uses across the app.
+                        </p>
+
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 mb-1.5"><MapIcon size={13} /> Map Provider</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {(["GOOGLE", "MAPLIBRE"] as const).map(opt => {
+                                        const selected = (form.mapProvider ?? "GOOGLE") === opt
+                                        return (
+                                            <button type="button" key={opt} onClick={() => set("mapProvider", opt)}
+                                                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${selected ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                                                <span className="text-sm">{opt === "GOOGLE" ? "Google Maps" : "MapLibre"}</span>
+                                                {selected && <Check size={13} className="text-blue-600 shrink-0" />}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 mb-1.5"><Search size={13} /> Place Search</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {(["GOOGLE", "OSM"] as const).map(opt => {
+                                        const selected = (form.placeSearchProvider ?? "GOOGLE") === opt
+                                        return (
+                                            <button type="button" key={opt} onClick={() => set("placeSearchProvider", opt)}
+                                                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${selected ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                                                <span className="text-sm">{opt === "GOOGLE" ? "Google Places" : "Free OSM Geocoder"}</span>
+                                                {selected && <Check size={13} className="text-blue-600 shrink-0" />}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

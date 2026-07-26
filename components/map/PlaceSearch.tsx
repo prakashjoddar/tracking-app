@@ -4,39 +4,27 @@ import { useEffect, useRef, useState } from "react"
 import { Search, X } from "lucide-react"
 import { toast } from "sonner"
 import { useTripStore } from "@/store/trip-store"
-import { Stop } from "@/lib/types"
 import { saveStop } from "@/lib/api"
-
-type Suggestion = {
-    placeId: string
-    mainText: string
-    secondaryText: string
-}
+import { PlaceSearchSession, PlaceSuggestion } from "@/lib/geocoding"
+import { useCurrentUserStore } from "@/store/current-user-store"
 
 export function PlaceSearch() {
 
     const [query, setQuery] = useState<string>("")
-    const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+    const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
     const [open, setOpen] = useState<boolean>(false)
 
     const inputRef = useRef<HTMLInputElement>(null)
-    const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+
+    const provider = useCurrentUserStore(s => s.user?.placeSearchProvider) ?? "GOOGLE"
+    const sessionRef = useRef<PlaceSearchSession | null>(null)
+    if (!sessionRef.current || sessionRef.current.provider !== provider) {
+        sessionRef.current = new PlaceSearchSession(provider)
+    }
 
     const setPendingLatLng = useTripStore(s => s.setPendingLatLng)
     const snapToRoute = useTripStore(s => s.snapToRoute)
     const addStop = useTripStore(s => s.addStop)
-
-
-    const getSessionToken = (): google.maps.places.AutocompleteSessionToken => {
-        if (!sessionTokenRef.current) {
-            sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
-        }
-        return sessionTokenRef.current
-    }
-
-    const resetSessionToken = (): void => {
-        sessionTokenRef.current = null
-    }
 
     useEffect(() => {
         if (!query || query.length < 2) {
@@ -47,23 +35,8 @@ export function PlaceSearch() {
 
         const fetchSuggestions = async (): Promise<void> => {
             try {
-                const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-                    input: query,
-                    sessionToken: getSessionToken(),
-                })
-
-                setSuggestions(
-                    suggestions
-                        .filter(s => s.placePrediction != null)
-                        .map(s => {
-                            const p = s.placePrediction!
-                            return {
-                                placeId: p.placeId,
-                                mainText: p.mainText?.text ?? p.text.text,
-                                secondaryText: p.secondaryText?.text ?? "",
-                            }
-                        })
-                )
+                const results = await sessionRef.current!.search(query)
+                setSuggestions(results)
                 setOpen(true)
             } catch (e) {
                 console.error("Autocomplete error:", e)
@@ -75,25 +48,20 @@ export function PlaceSearch() {
 
     }, [query])
 
-    const handleSelect = async (suggestion: Suggestion): Promise<void> => {
+    const handleSelect = async (suggestion: PlaceSuggestion): Promise<void> => {
         setQuery(suggestion.mainText)
         setOpen(false)
 
         try {
-            const place = new google.maps.places.Place({ id: suggestion.placeId })
-            await place.fetchFields({ fields: ["location", "displayName"] })
-
-            resetSessionToken()
-
-            const lat: number | undefined = place.location?.lat()
-            const lng: number | undefined = place.location?.lng()
-            if (lat == null || lng == null) return
+            const resolved = await sessionRef.current!.resolve(suggestion)
+            if (!resolved) return
+            const { lat, lng, displayName } = resolved
 
             const state = useTripStore.getState();
             const tripId = state.selectedTripId ?? state.editingTripId ?? "";
 
             const stopPayload = {
-                name: place.displayName ?? suggestion.mainText,
+                name: displayName,
                 latitude: lat,
                 longitude: lng,
                 type: "PICK_DROP" as const,
@@ -118,7 +86,7 @@ export function PlaceSearch() {
         setQuery("")
         setSuggestions([])
         setOpen(false)
-        resetSessionToken()
+        sessionRef.current?.resetSession()
         inputRef.current?.focus()
     }
 
@@ -144,9 +112,9 @@ export function PlaceSearch() {
 
             {open && suggestions.length > 0 && (
                 <div className="mt-1 bg-white rounded-lg shadow-xl border overflow-hidden">
-                    {suggestions.map((s: Suggestion) => (
+                    {suggestions.map((s) => (
                         <button
-                            key={s.placeId}
+                            key={s.id}
                             type="button"
                             onClick={() => handleSelect(s)}
                             className="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-start gap-3 border-b last:border-b-0"
@@ -162,13 +130,15 @@ export function PlaceSearch() {
                             </div>
                         </button>
                     ))}
-                    <div className="flex justify-end px-3 py-1.5 bg-gray-50">
-                        <img
-                            src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png"
-                            alt="Powered by Google"
-                            className="h-4"
-                        />
-                    </div>
+                    {provider === "GOOGLE" && (
+                        <div className="flex justify-end px-3 py-1.5 bg-gray-50">
+                            <img
+                                src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png"
+                                alt="Powered by Google"
+                                className="h-4"
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

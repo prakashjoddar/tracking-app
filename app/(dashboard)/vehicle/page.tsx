@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { VehicleListPanel } from "@/components/vehicle/VehicleListPanel"
 import { VehicleForm } from "@/components/vehicle/VehicleForm"
 import { useVehicleManageStore } from "@/store/vehicle-store"
@@ -11,6 +12,25 @@ export default function VehiclesPage() {
 
     const [formMode, setFormMode] = useState<FormMode>(null)
     const setEditingVehicleId = useVehicleManageStore(s => s.setEditingVehicleId)
+    const vehicles = useVehicleManageStore(s => s.vehicles)
+    const router = useRouter()
+
+    // Deep-link from the Dashboard's vehicle card ("Edit" button): ?vehicleNo=<no> — resolved to
+    // this vehicle's id once VehicleListPanel's own fetch populates the store, then the form opens
+    // exactly as if the user clicked Edit themselves. Runs once per page load.
+    const handledDeepLink = useRef(false)
+    useEffect(() => {
+        if (handledDeepLink.current) return
+        const vehicleNo = new URLSearchParams(window.location.search).get("vehicleNo")
+        if (!vehicleNo || vehicles.length === 0) return
+        const match = vehicles.find(v => v.number === vehicleNo)
+        if (match) {
+            setEditingVehicleId(match.id)
+            setFormMode("edit")
+        }
+        handledDeepLink.current = true
+        router.replace("/vehicle", { scroll: false })
+    }, [vehicles, setEditingVehicleId, router])
 
     const handleAddNew = (): void => {
         setEditingVehicleId(null)   // clear any previous selection
