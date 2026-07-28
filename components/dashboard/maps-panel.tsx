@@ -67,7 +67,7 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
 
   const {
     selectedLocationId, searchQuery, sortBy,
-    selectLocation, toggleFavorite,
+    selectLocation,
     setSearchQuery, setSortBy,
     userLocation, setUserLocation,
     routeDestinationId, setRouteDestination, clearRoute,
@@ -376,7 +376,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
               isRouteActive={routeDestinationId === v.vehicleNo}
               isFollowing={followVehicleId === v.vehicleNo}
               onClick={() => handleVehicleClick(v)}
-              onFavorite={() => toggleFavorite(v.vehicleNo)}
               onRoute={() => handleHistory(v)}
               onFollow={() => setFollowVehicle(
                 followVehicleId === v.vehicleNo ? null : v.vehicleNo

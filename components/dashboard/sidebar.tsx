@@ -15,7 +15,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger
@@ -29,10 +28,8 @@ import {
   Coffee,
   Dumbbell,
   FileBarChart2,
-  Heart,
   Landmark,
   LogOut,
-  MapPin,
   Settings,
   ShoppingBag,
   Trees,
@@ -40,21 +37,15 @@ import {
   Wine
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { NavMain } from "../ui/nav-main";
 
 import { fetchCurrentUser } from "@/lib/api";
 import { UserRequestResponse } from "@/lib/types";
-import { useVehicleStore } from "@/store/location-store";
 import {
   UserCircle
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const navItems = [
-  { id: "all", title: "All Locations", icon: MapPin, href: "/" },
-  { id: "favorites", title: "Favorites", icon: Heart, href: "/favorite" },
-];
 
 const iconMap: Record<
   string,
@@ -73,7 +64,6 @@ const iconMap: Record<
 export function LocationsSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname();
   const {
     locations,
     selectedCategory,
@@ -114,11 +104,6 @@ export function LocationsSidebar({
       router.push("/login");
     }
   };
-
-  const vehicles = useVehicleStore((s) => s.vehicles)
-
-  const favoriteCount = 0;
-  const recentCount = 0;
 
   // const getCategoryCount = (categoryId: string) => {
   //   if (categoryId === "all") return locations.length;
@@ -203,37 +188,6 @@ export function LocationsSidebar({
       </SidebarHeader>
 
       <SidebarContent className="px-2.5">
-        <SidebarGroup className="p-0">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                let badge: number | undefined;
-                if (item.id === "favorites") badge = favoriteCount;
-                if (item.id === "all") badge = vehicles.length;
-
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className="h-8"
-                    >
-                      <Link href={item.href}>
-                        <item.icon className="size-4" />
-                        <span className="text-sm">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                    {badge !== undefined && badge > 0 && (
-                      <SidebarMenuBadge>{badge}</SidebarMenuBadge>
-                    )}
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* <SidebarGroup className="p-0 mt-4">
           <SidebarGroupLabel className="px-0 h-6">
             <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">

@@ -1,17 +1,29 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { fetchVehicles } from "@/lib/api"
+import { fetchVehicles, replaceVehicle, cancelVehicleReplacement } from "@/lib/api"
 import { Vehicle } from "@/lib/types"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { RefreshCw, ArrowLeftRight, X, Car, Save, Search } from "lucide-react"
 import { toast } from "sonner"
 
+// Builds the vehicleId → replacementVehicleId map from the server's current state.
+const toReplacementsMap = (data: Vehicle[]): Record<string, string> => {
+    const map: Record<string, string> = {}
+    for (const v of data) {
+        if (v.replacementVehicleId) map[v.id] = v.replacementVehicleId
+    }
+    return map
+}
+
 export function VehicleReplacementPanel() {
     const [vehicles, setVehicles] = useState<Vehicle[]>([])
     const [loading, setLoading] = useState(true)
-    // vehicleId → replacementVehicleId
+    const [saving, setSaving] = useState(false)
+    // vehicleId → replacementVehicleId (local edits, may differ from server until Save)
     const [replacements, setReplacements] = useState<Record<string, string>>({})
+    // Last-loaded server state, used to diff on Save so we only call the API for changed rows
+    const [savedReplacements, setSavedReplacements] = useState<Record<string, string>>({})
     const [search, setSearch] = useState("")
 
     const load = async () => {
@@ -19,6 +31,9 @@ export function VehicleReplacementPanel() {
             setLoading(true)
             const data = await fetchVehicles()
             setVehicles(data)
+            const serverState = toReplacementsMap(data)
+            setReplacements(serverState)
+            setSavedReplacements(serverState)
         } catch {
             toast.error("Failed to load vehicles.")
         } finally {
@@ -57,19 +72,58 @@ export function VehicleReplacementPanel() {
         })
     }
 
-    const handleSaveAll = () => {
-        const count = Object.values(replacements).filter(Boolean).length
-        if (count === 0) {
-            toast.info("No replacements configured.")
+    const handleSaveAll = async () => {
+        // Only rows that actually changed since the last server load —
+        // assigned/changed → replaceVehicle, cleared → cancelVehicleReplacement.
+        const allIds = [...new Set([...Object.keys(replacements), ...Object.keys(savedReplacements)])]
+        const changes = allIds.filter(id => replacements[id] !== savedReplacements[id])
+
+        if (changes.length === 0) {
+            toast.info("No changes to save.")
             return
         }
-        // TODO: call backend save endpoint
-        toast.success(`${count} replacement${count > 1 ? "s" : ""} saved.`)
+
+        setSaving(true)
+        const results = await Promise.allSettled(changes.map(id =>
+            replacements[id]
+                ? replaceVehicle(id, replacements[id])
+                : cancelVehicleReplacement(id)
+        ))
+        setSaving(false)
+
+        const failures = results.filter(r => r.status === "rejected").length
+        const succeeded = results.length - failures
+
+        if (succeeded > 0) {
+            toast.success(`${succeeded} replacement${succeeded > 1 ? "s" : ""} saved.`)
+        }
+        if (failures > 0) {
+            toast.error(`${failures} change${failures > 1 ? "s" : ""} failed — vehicle may already be part of another replacement.`)
+        }
+
+        await load()
     }
 
-    const handleClearAll = () => {
-        setReplacements({})
-        toast.info("All replacements cleared.")
+    const handleClearAll = async () => {
+        const activeIds = Object.keys(savedReplacements)
+        if (activeIds.length === 0) {
+            setReplacements({})
+            toast.info("Nothing to clear.")
+            return
+        }
+
+        setSaving(true)
+        const results = await Promise.allSettled(activeIds.map(id => cancelVehicleReplacement(id)))
+        setSaving(false)
+
+        const failures = results.filter(r => r.status === "rejected").length
+        if (failures > 0) {
+            toast.error(`${failures} replacement${failures > 1 ? "s" : ""} failed to clear.`)
+        } else {
+            toast.success("All replacements cleared.")
+        }
+
+        await load()
     }
 
     const filtered = vehicles.filter(v =>
@@ -104,16 +158,18 @@ export function VehicleReplacementPanel() {
                         </button>
                         <button
                             onClick={handleClearAll}
-                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
+                            disabled={saving}
+                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
                         >
                             <X size={14} />
                             Clear All
                         </button>
                         <button
                             onClick={handleSaveAll}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-600/20 active:scale-[0.98] transition-all"
+                            disabled={saving}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
                         >
-                            <Save size={14} />
+                            {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
                             Save
                         </button>
                     </div>

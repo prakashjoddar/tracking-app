@@ -9,8 +9,8 @@ const nextConfig: NextConfig = {
       // lib/api.ts's NOTIFICATION_URL.
       {
         source: "/api/:path*",
-        // destination: "http://138.252.201.46:6003/:path*",
-        destination: "http://localhost:6003/:path*",
+        destination: "http://138.252.201.46:6003/:path*",
+        // destination: "http://localhost:6003/:path*",
       },
     ];
   },

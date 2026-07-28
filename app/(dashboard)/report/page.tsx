@@ -12,6 +12,7 @@ import {
     CalendarRange,
     Signpost,
     AlertTriangle,
+    ArrowLeftRight,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -127,6 +128,15 @@ const reports = [
         color: "bg-red-50 text-red-600",
         border: "hover:border-red-200",
         href: "/report/route-deviation",
+    },
+    {
+        id: "vehicle-replacement",
+        title: "Vehicle Replacement Report",
+        description: "Timeline of when a substitute vehicle covered a damaged one.",
+        icon: ArrowLeftRight,
+        color: "bg-blue-50 text-blue-600",
+        border: "hover:border-blue-200",
+        href: "/report/vehicle-replacement",
     },
 ]
 

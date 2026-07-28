@@ -5,7 +5,7 @@ import { useNotificationStore } from "@/store/notification-store"
 import { NotificationEvent } from "@/lib/types"
 import {
     Bell, X, Trash2, AlertTriangle, Zap, PowerOff, Activity, Pause, BatteryWarning,
-    PlayCircle, CheckCircle2, Navigation, MapPin, ArrowRightCircle, type LucideIcon,
+    PlayCircle, CheckCircle2, Navigation, MapPin, ArrowRightCircle, LogIn, LogOut, type LucideIcon,
 } from "lucide-react"
 
 const typeStyle: Record<string, string> = {
@@ -24,6 +24,8 @@ const typeStyle: Record<string, string> = {
     STOP_SKIPPED_MISSED: "bg-red-50 text-red-700 border-red-200",
     TRIP_STARTED: "bg-green-50 text-green-700 border-green-200",
     TRIP_FINISHED: "bg-slate-100 text-slate-600 border-slate-200",
+    GEOFENCE_ENTER: "bg-purple-50 text-purple-700 border-purple-200",
+    GEOFENCE_EXIT: "bg-slate-100 text-slate-600 border-slate-200",
 }
 
 const typeLabel: Record<string, string> = {
@@ -42,6 +44,8 @@ const typeLabel: Record<string, string> = {
     STOP_SKIPPED_MISSED: "Stop Skipped",
     TRIP_STARTED: "Trip Started",
     TRIP_FINISHED: "Trip Finished",
+    GEOFENCE_ENTER: "Geofence Entered",
+    GEOFENCE_EXIT: "Geofence Exited",
 }
 
 const typeIcon: Record<string, LucideIcon> = {
@@ -60,6 +64,8 @@ const typeIcon: Record<string, LucideIcon> = {
     STOP_SKIPPED_MISSED: AlertTriangle,
     TRIP_STARTED: PlayCircle,
     TRIP_FINISHED: CheckCircle2,
+    GEOFENCE_ENTER: LogIn,
+    GEOFENCE_EXIT: LogOut,
 }
 
 const accentByPriority: Record<string, string> = {

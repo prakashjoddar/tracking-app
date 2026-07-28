@@ -18,6 +18,9 @@ export type VehicleLocation = {
   /** Stop progress for the active trip — undefined/null unless tripActive. */
   completedStops?: number | null;
   totalStops?: number | null;
+  /** Set only while this vehicle has an active replacement — the substitute's number/name, display only. */
+  displayVehicleNo?: string;
+  displayLabel?: string;
 };
 
 export type VehicleHistoryPoint = {
@@ -49,6 +52,8 @@ export type Vehicle = {
   vehicleManufacturer: string;
   vehicleModelNumber: string;
   checkImeiExist: boolean;
+  /** Set on a damaged vehicle while it's covered by a substitute — the substitute's Vehicle.id. */
+  replacementVehicleId?: string | null;
 };
 
 export type TripType = "PICKING" | "DROPPING";
@@ -334,6 +339,15 @@ export type TripReportEntry = {
   startTime: string; // ISO LocalDateTime
   endTime: string | null; // ISO LocalDateTime — null while still in progress
   totalStopsVisited: number;
+};
+
+export type VehicleReplacementHistoryEntry = {
+  id: number;
+  damagedVehicleNumber: string;
+  replacementVehicleNumber: string;
+  startedAt: string; // ISO LocalDateTime
+  endedAt: string | null; // ISO LocalDateTime — null while still active
+  active: boolean;
 };
 
 export type AlertConfigEntry = {

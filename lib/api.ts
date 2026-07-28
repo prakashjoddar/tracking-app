@@ -14,6 +14,7 @@ import {
   VehicleHistoryPoint,
   VehicleLocation,
   VehicleReportEntry,
+  VehicleReplacementHistoryEntry,
   DistanceReportEntry,
   DaywiseDistanceEntry,
   Geofence,
@@ -27,8 +28,8 @@ import axios from "axios";
 // export const BASE_URL = "http://localhost:6003";
 export const BASE_URL = "/api";
 
-export const BACKEND_URL = "http://localhost:6003";
-// export const BACKEND_URL = "http://138.252.201.46:6003";
+// export const BACKEND_URL = "http://localhost:6003";
+export const BACKEND_URL = "http://138.252.201.46:6003";
 
 // gps-engine's notification stream is connected to directly (not proxied
 // through the /api rewrite) — Next.js's response compression buffers the
@@ -149,14 +150,10 @@ api.interceptors.response.use(
 
 // ── Location ──────────────────────────────────────────────────────────────────
 export async function fetchVehicleLocations(groupId?: string | null): Promise<VehicleLocation[]> {
-  try {
-    const res = await api.get<VehicleLocation[]>("/location", {
-      params: groupId ? { groupId } : undefined,
-    });
-    return res.data;
-  } catch {
-    return [];
-  }
+  const res = await api.get<VehicleLocation[]>("/location", {
+    params: groupId ? { groupId } : undefined,
+  });
+  return res.data;
 }
 
 export async function fetchVehicleLocationHistory(
@@ -190,6 +187,19 @@ export async function saveVehicle(
 
 export async function deleteVehicle(id: string): Promise<void> {
   await api.delete(`/vehicle/${id}`);
+}
+
+export async function replaceVehicle(
+  id: string,
+  replacementVehicleId: string,
+): Promise<Vehicle> {
+  const res = await api.post<Vehicle>(`/vehicle/${id}/replace`, { replacementVehicleId });
+  return res.data;
+}
+
+export async function cancelVehicleReplacement(id: string): Promise<Vehicle> {
+  const res = await api.post<Vehicle>(`/vehicle/${id}/replace/cancel`);
+  return res.data;
 }
 
 // ── Trip ──────────────────────────────────────────────────────────────────────
@@ -371,6 +381,15 @@ export async function fetchStopsReport(
 ): Promise<Page<Alert>> {
   const res = await api.get<Page<Alert>>("/report/stops", {
     params: { page, size, from, to, vehicleNo: vehicleNo || undefined, groupId: groupId || undefined },
+  });
+  return res.data;
+}
+
+export async function fetchVehicleReplacementReport(
+  page: number, size: number, from: string, to: string, vehicleNo?: string
+): Promise<Page<VehicleReplacementHistoryEntry>> {
+  const res = await api.get<Page<VehicleReplacementHistoryEntry>>("/report/vehicle-replacement", {
+    params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
   });
   return res.data;
 }

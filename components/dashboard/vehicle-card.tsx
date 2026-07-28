@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { VehicleLocation } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { Bell, Edit, Heart, Route, Navigation } from "lucide-react"
+import { Bell, Edit, Route, Navigation } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { BiSignal1, BiSignal2, BiSignal3, BiSignal4, BiSignal5 } from "react-icons/bi"
 import { IoRocketSharp } from "react-icons/io5"
@@ -19,7 +19,6 @@ interface VehicleCardProps {
     isRouteActive: boolean
     isFollowing: boolean
     onClick: () => void
-    onFavorite: () => void
     onRoute: () => void
     onFollow: () => void
 }
@@ -53,7 +52,7 @@ const SignalIcon = ({ value }: { value?: number }) => {
 
 export function VehicleCard({
     location, isSelected, isRouteActive, isFollowing,
-    onClick, onFavorite, onRoute, onFollow
+    onClick, onRoute, onFollow
 }: VehicleCardProps) {
 
     const status = STATUS_CONFIG[location.status] ?? STATUS_CONFIG.OFFLINE
@@ -101,7 +100,16 @@ export function VehicleCard({
                     {/* Label + time */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-sm truncate">{location.label}</span>
+                            <span className="font-semibold text-sm truncate">{location.displayLabel ?? location.label}</span>
+                            {location.displayLabel && (
+                                <span
+                                    title={`Running on substitute vehicle ${location.displayVehicleNo}`}
+                                    className="flex items-center gap-0.5 text-[9px] font-semibold px-1 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700 shrink-0"
+                                >
+                                    <MdOutlineSync size={9} />
+                                    Replaced
+                                </span>
+                            )}
                             {location.status === "RUNNING" && (
                                 <span className="relative flex size-1.5 shrink-0">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -201,7 +209,7 @@ export function VehicleCard({
                             {[
                                 { label: "Edit", icon: <Edit size={12} className="text-orange-500" />, hover: "hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600", onSelect: () => goTo("/vehicle") },
                                 { label: "Trip", icon: <RiRoadMapLine size={12} className="text-blue-500" />, hover: "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600", onSelect: () => goTo("/trip") },
-                                { label: "Replace", icon: <MdOutlineSync size={12} className="text-green-500" />, hover: "hover:bg-green-50 hover:border-green-300 hover:text-green-600", onSelect: undefined },
+                                { label: "Replace", icon: <MdOutlineSync size={12} className="text-green-500" />, hover: "hover:bg-green-50 hover:border-green-300 hover:text-green-600", onSelect: () => goTo("/vehicle-replacement") },
                                 { label: "Alerts", icon: <Bell size={12} className="text-red-500" />, hover: "hover:bg-red-50 hover:border-red-300 hover:text-red-600", onSelect: () => goTo("/alert") },
                             ].map(({ label, icon, hover, onSelect }) => (
                                 <button
@@ -225,13 +233,6 @@ export function VehicleCard({
                                 onClick={e => { e.stopPropagation(); onRoute() }}
                             >
                                 <Route size={14} />
-                            </Button>
-                            <Button
-                                variant="ghost" size="icon"
-                                className="size-7 hover:bg-red-50"
-                                onClick={e => { e.stopPropagation(); onFavorite() }}
-                            >
-                                <Heart size={14} className="text-red-400" />
                             </Button>
                         </div>
                     </div>

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { NOTIFICATION_URL } from "@/lib/api";
 import { NotificationEvent } from "@/lib/types";
 import { useNotificationStore } from "@/store/notification-store";
+import { getCurrentUserType } from "@/lib/utils";
 
 const RECONNECT_DELAY_MS = 3000;
 
@@ -35,6 +36,12 @@ export function useNotificationStream() {
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   useEffect(() => {
+    // SUPER accounts aren't scoped to a single org (LocationController's
+    // /location excludes them for the same reason) — gps-engine's
+    // UserOrgResolver can't resolve an org for them, so opening this stream
+    // would just fail and retry forever.
+    if (getCurrentUserType() === "SUPER") return;
+
     let eventSource: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
