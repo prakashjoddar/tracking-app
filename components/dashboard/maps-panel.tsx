@@ -18,7 +18,7 @@ import {
   ArrowDownAZ, ArrowUpAZ, ArrowUpDown,
   CalendarArrowDown, CalendarArrowUp,
   Check, ChevronLeft, ChevronRight,
-  Layers, Search, X, Locate
+  Layers, Search, X
 } from "lucide-react"
 import * as React from "react"
 import { useState } from "react"
@@ -37,13 +37,6 @@ const STATUS_TABS: { value: StatusFilter; label: string; color: string }[] = [
   { value: "PARKED", label: "Parked", color: "text-red-600" },
   { value: "TRIP", label: "Trip", color: "text-purple-600" },
 ]
-
-function getLocationFromIP(): Promise<{ lat: number; lng: number } | null> {
-  return fetch("https://ipapi.co/json/")
-    .then(r => r.json())
-    .then(d => d.latitude ? { lat: d.latitude, lng: d.longitude } : null)
-    .catch(() => null)
-}
 
 interface MapsPanelProps {
   mode?: PanelMode
@@ -69,7 +62,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
     selectedLocationId, searchQuery, sortBy,
     selectLocation,
     setSearchQuery, setSortBy,
-    userLocation, setUserLocation,
     routeDestinationId, setRouteDestination, clearRoute,
     isPanelVisible, setPanelVisible,
     followVehicleId, setFollowVehicle, setAutoFocus,
@@ -78,32 +70,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
   React.useEffect(() => {
     fetchVehicleGroups().then(setVehicleGroups).catch(() => {})
   }, [])
-
-  // ── location helpers ──────────────────────────────────────────
-  const requestLocation = React.useCallback(async () => {
-    return new Promise<{ lat: number; lng: number } | null>(resolve => {
-      if (!("geolocation" in navigator)) {
-        getLocationFromIP().then(loc => {
-          if (loc) setUserLocation(loc)
-          resolve(loc)
-        })
-        return
-      }
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-          setUserLocation(loc)
-          resolve(loc)
-        },
-        async () => {
-          const loc = await getLocationFromIP()
-          if (loc) setUserLocation(loc)
-          resolve(loc)
-        },
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
-      )
-    })
-  }, [setUserLocation])
 
   // ── handlers ─────────────────────────────────────────────────
   const handleVehicleClick = (v: VehicleLocation): void => {
@@ -134,7 +100,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
       console.error("History fetch error", e)
       toast.error(e.response?.data?.message || "Failed to fetch location history")
     }
-    if (!userLocation) await requestLocation()
     setRouteDestination(v.vehicleNo)
   }
 
@@ -212,14 +177,6 @@ export function MapsPanel({ mode = "all" }: MapsPanelProps) {
           </div>
 
           <div className="flex items-center gap-1">
-            {/* locate me */}
-            <button
-              onClick={requestLocation}
-              title="Get my location"
-              className="size-7 flex items-center justify-center rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <Locate size={14} className={cn(userLocation ? "text-blue-500" : "text-gray-400")} />
-            </button>
             {/* flip side */}
             <button
               onClick={() => setOnLeft(v => !v)}
