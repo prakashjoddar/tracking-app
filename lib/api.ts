@@ -36,7 +36,7 @@ export const BACKEND_URL = "http://138.252.201.46:6003";
 // low-throughput SSE chunks before flushing, so the browser never receives
 // them in real time through the proxy, even though the connection itself
 // succeeds. gps-engine's endpoint has @CrossOrigin for exactly this reason.
-export const NOTIFICATION_URL = "http://138.252.201.46:6002";
+export const NOTIFICATION_URL = "https://alert.trackingtoe.com";
 // export const NOTIFICATION_URL = "http://localhost:6002";
 
 export const api = axios.create({
@@ -149,7 +149,9 @@ api.interceptors.response.use(
 );
 
 // ── Location ──────────────────────────────────────────────────────────────────
-export async function fetchVehicleLocations(groupId?: string | null): Promise<VehicleLocation[]> {
+export async function fetchVehicleLocations(
+  groupId?: string | null,
+): Promise<VehicleLocation[]> {
   const res = await api.get<VehicleLocation[]>("/location", {
     params: groupId ? { groupId } : undefined,
   });
@@ -193,7 +195,9 @@ export async function replaceVehicle(
   id: string,
   replacementVehicleId: string,
 ): Promise<Vehicle> {
-  const res = await api.post<Vehicle>(`/vehicle/${id}/replace`, { replacementVehicleId });
+  const res = await api.post<Vehicle>(`/vehicle/${id}/replace`, {
+    replacementVehicleId,
+  });
   return res.data;
 }
 
@@ -289,32 +293,55 @@ export async function deleteTripStops(tripId: string): Promise<void> {
 
 // ── Alert ─────────────────────────────────────────────────────────────────────
 /** Trip-lifecycle alerts (TRIP_STARTED, BUS_ARRIVED_AT_STOP, etc.). */
-export async function fetchTripAlerts(page: number, size = 25, vehicleNo?: string): Promise<Page<Alert>> {
-  const res = await api.get<Page<Alert>>("/alert/trip", { params: { page, size, vehicleNo: vehicleNo || undefined } });
+export async function fetchTripAlerts(
+  page: number,
+  size = 25,
+  vehicleNo?: string,
+): Promise<Page<Alert>> {
+  const res = await api.get<Page<Alert>>("/alert/trip", {
+    params: { page, size, vehicleNo: vehicleNo || undefined },
+  });
   return res.data;
 }
 
 /** Per-packet vehicle-status alerts (IGNITION_ON, OVER_SPEED, etc.) — a separate, higher-volume stream. */
-export async function fetchVehicleAlerts(page: number, size = 25, vehicleNo?: string): Promise<Page<VehicleAlert>> {
-  const res = await api.get<Page<VehicleAlert>>("/alert/vehicle", { params: { page, size, vehicleNo: vehicleNo || undefined } });
+export async function fetchVehicleAlerts(
+  page: number,
+  size = 25,
+  vehicleNo?: string,
+): Promise<Page<VehicleAlert>> {
+  const res = await api.get<Page<VehicleAlert>>("/alert/vehicle", {
+    params: { page, size, vehicleNo: vehicleNo || undefined },
+  });
   return res.data;
 }
 
 // ── Message ───────────────────────────────────────────────────────────────────
-export async function sendMessage(request: SendMessageRequest): Promise<MessageResponse> {
+export async function sendMessage(
+  request: SendMessageRequest,
+): Promise<MessageResponse> {
   const res = await api.post<MessageResponse>("/message", request);
   return res.data;
 }
 
-export async function fetchMessages(page: number, size = 25): Promise<Page<MessageResponse>> {
-  const res = await api.get<Page<MessageResponse>>("/message", { params: { page, size } });
+export async function fetchMessages(
+  page: number,
+  size = 25,
+): Promise<Page<MessageResponse>> {
+  const res = await api.get<Page<MessageResponse>>("/message", {
+    params: { page, size },
+  });
   return res.data;
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 /** `from`/`to` are required — format "YYYY-MM-DDTHH:mm:ss". */
 export async function fetchIgnitionReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
 ): Promise<Page<VehicleAlert>> {
   const res = await api.get<Page<VehicleAlert>>("/report/ignition", {
     params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
@@ -323,34 +350,73 @@ export async function fetchIgnitionReport(
 }
 
 export async function fetchVehicleReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string, groupId?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
+  groupId?: string,
 ): Promise<Page<VehicleReportEntry>> {
   const res = await api.get<Page<VehicleReportEntry>>("/report/vehicle", {
-    params: { page, size, from, to, vehicleNo: vehicleNo || undefined, groupId: groupId || undefined },
+    params: {
+      page,
+      size,
+      from,
+      to,
+      vehicleNo: vehicleNo || undefined,
+      groupId: groupId || undefined,
+    },
   });
   return res.data;
 }
 
 export async function fetchDistanceReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string, groupId?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
+  groupId?: string,
 ): Promise<Page<DistanceReportEntry>> {
   const res = await api.get<Page<DistanceReportEntry>>("/report/distance", {
-    params: { page, size, from, to, vehicleNo: vehicleNo || undefined, groupId: groupId || undefined },
+    params: {
+      page,
+      size,
+      from,
+      to,
+      vehicleNo: vehicleNo || undefined,
+      groupId: groupId || undefined,
+    },
   });
   return res.data;
 }
 
 export async function fetchDaywiseDistanceReport(
-  from: string, to: string, vehicleNo?: string, groupId?: string
+  from: string,
+  to: string,
+  vehicleNo?: string,
+  groupId?: string,
 ): Promise<DaywiseDistanceEntry[]> {
-  const res = await api.get<DaywiseDistanceEntry[]>("/report/distance/daywise", {
-    params: { from, to, vehicleNo: vehicleNo || undefined, groupId: groupId || undefined },
-  });
+  const res = await api.get<DaywiseDistanceEntry[]>(
+    "/report/distance/daywise",
+    {
+      params: {
+        from,
+        to,
+        vehicleNo: vehicleNo || undefined,
+        groupId: groupId || undefined,
+      },
+    },
+  );
   return res.data;
 }
 
 export async function fetchOverSpeedReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
 ): Promise<Page<VehicleAlert>> {
   const res = await api.get<Page<VehicleAlert>>("/report/over-speed", {
     params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
@@ -359,7 +425,11 @@ export async function fetchOverSpeedReport(
 }
 
 export async function fetchGeofenceReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
 ): Promise<Page<VehicleAlert>> {
   const res = await api.get<Page<VehicleAlert>>("/report/geofence", {
     params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
@@ -368,7 +438,11 @@ export async function fetchGeofenceReport(
 }
 
 export async function fetchTripReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
 ): Promise<Page<TripReportEntry>> {
   const res = await api.get<Page<TripReportEntry>>("/report/trip", {
     params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
@@ -377,20 +451,39 @@ export async function fetchTripReport(
 }
 
 export async function fetchStopsReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string, groupId?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
+  groupId?: string,
 ): Promise<Page<Alert>> {
   const res = await api.get<Page<Alert>>("/report/stops", {
-    params: { page, size, from, to, vehicleNo: vehicleNo || undefined, groupId: groupId || undefined },
+    params: {
+      page,
+      size,
+      from,
+      to,
+      vehicleNo: vehicleNo || undefined,
+      groupId: groupId || undefined,
+    },
   });
   return res.data;
 }
 
 export async function fetchVehicleReplacementReport(
-  page: number, size: number, from: string, to: string, vehicleNo?: string
+  page: number,
+  size: number,
+  from: string,
+  to: string,
+  vehicleNo?: string,
 ): Promise<Page<VehicleReplacementHistoryEntry>> {
-  const res = await api.get<Page<VehicleReplacementHistoryEntry>>("/report/vehicle-replacement", {
-    params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
-  });
+  const res = await api.get<Page<VehicleReplacementHistoryEntry>>(
+    "/report/vehicle-replacement",
+    {
+      params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
+    },
+  );
   return res.data;
 }
 
@@ -451,9 +544,13 @@ export async function uploadUserPhoto(
 ): Promise<UserRequestResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await api.post<UserRequestResponse>(`/user/${id}/photo`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const res = await api.post<UserRequestResponse>(
+    `/user/${id}/photo`,
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    },
+  );
   return res.data;
 }
 
@@ -510,7 +607,10 @@ export async function fetchDefaultAlertConfig(): Promise<AlertConfigUpdateReques
 export async function updateDefaultAlertConfig(
   payload: AlertConfigUpdateRequest,
 ): Promise<AlertConfigUpdateRequest> {
-  const res = await api.put<AlertConfigUpdateRequest>("/alert-config/default", payload);
+  const res = await api.put<AlertConfigUpdateRequest>(
+    "/alert-config/default",
+    payload,
+  );
   return res.data;
 }
 
