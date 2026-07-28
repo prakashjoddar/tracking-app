@@ -83,6 +83,11 @@ export type Trip = {
   studentCount?: number;
   followSequence: boolean;
   sequenceLookahead?: number | null;
+  killAtMidnight: boolean;
+  /** Hours of day (0-23), besides midnight, at which a still-open trip gets force-closed. */
+  forceKillHours?: number[] | null;
+  /** Default false: once finished, this trip can't start again same day. True allows re-starting after completion. */
+  allowMultipleRunsPerDay: boolean;
 };
 
 export type StopType = "BUS_STOP" | "PICK_DROP" | "INSTITUTE";

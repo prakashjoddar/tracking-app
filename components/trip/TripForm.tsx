@@ -1,18 +1,22 @@
 "use client"
 
-import { Checkbox, Drawer, DrawerProps, Flex, Radio, TimePicker, Button as AntBtn } from "antd"
+import { Checkbox, Drawer, DrawerProps, Flex, Radio, Select, TimePicker, Button as AntBtn } from "antd"
 import { CheckboxGroupProps } from "antd/es/checkbox"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
 import { Input } from "../ui/input"
 import { useRouter } from "next/navigation"
-import { Bus, Clock, Users, MapPin, Save, RotateCcw, Search, ShieldCheck, CarFront, Phone, Check, Loader2, ListOrdered } from "lucide-react"
+import { Bus, Clock, Users, MapPin, Save, RotateCcw, Search, ShieldCheck, CarFront, Phone, Check, Loader2, ListOrdered, PowerOff } from "lucide-react"
 import { useTripStore } from "@/store/trip-store"
 import { Trip, UserRequestResponse, WeekDay } from "@/lib/types"
 import { saveTrip, saveStops, fetchUsers } from "@/lib/api"
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 const FORMAT = "HH:mm"
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
+    label: `${String(h).padStart(2, "0")}:00`,
+    value: h,
+}))
 
 const toDisplay = (d: string) => d.charAt(0) + d.slice(1).toLowerCase()
 const toBackend = (d: string) => d.toUpperCase() as WeekDay
@@ -54,6 +58,9 @@ export default function TripForm() {
     )
     const [followSequence, setFollowSequence] = useState<boolean>(false)
     const [sequenceLookahead, setSequenceLookahead] = useState<string>("")
+    const [killAtMidnight, setKillAtMidnight] = useState<boolean>(true)
+    const [forceKillHours, setForceKillHours] = useState<number[]>([])
+    const [allowMultipleRunsPerDay, setAllowMultipleRunsPerDay] = useState<boolean>(false)
 
     // Driver selection
     const [driverDrawerOpen, setDriverDrawerOpen] = useState<boolean>(false)
@@ -83,6 +90,9 @@ export default function TripForm() {
             setSelectedDriverIds(editingTrip.driver ?? [])
             setFollowSequence(editingTrip.followSequence ?? false)
             setSequenceLookahead(editingTrip.sequenceLookahead != null ? String(editingTrip.sequenceLookahead) : "")
+            setKillAtMidnight(editingTrip.killAtMidnight ?? true)
+            setForceKillHours(editingTrip.forceKillHours ?? [])
+            setAllowMultipleRunsPerDay(editingTrip.allowMultipleRunsPerDay ?? false)
         } else {
             setTripName("")
             setTripType("PICKING")
@@ -94,6 +104,9 @@ export default function TripForm() {
             setSelectedDriverIds([])
             setFollowSequence(false)
             setSequenceLookahead("")
+            setKillAtMidnight(true)
+            setForceKillHours([])
+            setAllowMultipleRunsPerDay(false)
         }
     }, [editingTripId])
 
@@ -162,6 +175,9 @@ export default function TripForm() {
         setSelectedDriverIds([])
         setFollowSequence(false)
         setSequenceLookahead("")
+        setKillAtMidnight(true)
+        setForceKillHours([])
+        setAllowMultipleRunsPerDay(false)
     }
 
     const handleClear = () => {
@@ -184,6 +200,9 @@ export default function TripForm() {
                 vehicleId: selectedVehicleId || "",
                 followSequence,
                 sequenceLookahead: followSequence && sequenceLookahead.trim() ? parseInt(sequenceLookahead, 10) : null,
+                killAtMidnight,
+                forceKillHours,
+                allowMultipleRunsPerDay,
             }
             const saved = await saveTrip(payload)
             if (editingTrip) {
@@ -289,6 +308,22 @@ export default function TripForm() {
                         <Checkbox.Group options={DAYS} value={selectedDays}
                             onChange={vals => setSelectedDays(vals as string[])} className="flex flex-wrap gap-y-2" />
                     </FormField>
+                    <FormField label="Repeat Same Day">
+                        <Radio.Group
+                            options={[
+                                { label: "Off", value: false },
+                                { label: "On", value: true },
+                            ]}
+                            value={allowMultipleRunsPerDay}
+                            optionType="button"
+                            buttonStyle="solid"
+                            onChange={e => setAllowMultipleRunsPerDay(e.target.value)}
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">
+                            Off (default): once this trip finishes, it can't start again the
+                            same day. On: it can start fresh again the same day after finishing.
+                        </p>
+                    </FormField>
                 </Section>
 
                 <Section icon={<ListOrdered size={13} />} title="Stop Sequence">
@@ -320,6 +355,38 @@ export default function TripForm() {
                         When on, stops are only confirmed in route order — prevents a
                         later stop (e.g. on the opposite lane of an earlier road) from
                         being falsely marked arrived out of turn.
+                    </p>
+                </Section>
+
+                <Section icon={<PowerOff size={13} />} title="Auto-Close Safety Net">
+                    <FormField label="Kill At Midnight">
+                        <Radio.Group
+                            options={[
+                                { label: "Off", value: false },
+                                { label: "On", value: true },
+                            ]}
+                            value={killAtMidnight}
+                            optionType="button"
+                            buttonStyle="solid"
+                            onChange={e => setKillAtMidnight(e.target.value)}
+                        />
+                    </FormField>
+                    <FormField label="Also Force-Close At">
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            placeholder="No extra hours"
+                            options={HOUR_OPTIONS}
+                            value={forceKillHours}
+                            onChange={vals => setForceKillHours(vals as number[])}
+                            className="w-full"
+                        />
+                    </FormField>
+                    <p className="text-[11px] text-gray-400">
+                        Safety net for a trip that never closes on its own (e.g. vehicle
+                        stops reporting mid-route). Kill At Midnight force-closes it at
+                        00:00 unless turned off; the extra hours above force-close it at
+                        those times too, regardless of the midnight setting.
                     </p>
                 </Section>
 
