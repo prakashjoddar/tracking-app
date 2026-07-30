@@ -40,6 +40,12 @@ export type RfidType = "NONE" | "INTERNAL" | "EXTERNAL";
 export type Vehicle = {
   id: string;
   imei: string;
+  /**
+   * Driver mobile number authorized to submit GPS for this vehicle from the
+   * mobile app — set only for vehicles with no real hardware tracker. When
+   * set, `imei` holds an admin-chosen device label rather than a real IMEI.
+   */
+  deviceMobileNo?: string;
   number: string;
   name: string;
   description: string;
@@ -83,6 +89,8 @@ export type Trip = {
   studentCount?: number;
   followSequence: boolean;
   sequenceLookahead?: number | null;
+  /** Per-trip override: when true, gps-engine's sequence-mode stall auto-skip never fires for this trip. Only meaningful when followSequence is true. */
+  disableSequenceStallTimeout?: boolean | null;
   killAtMidnight: boolean;
   /** Hours of day (0-23), besides midnight, at which a still-open trip gets force-closed. */
   forceKillHours?: number[] | null;
@@ -207,6 +215,7 @@ export type UserRequestResponse = {
   vehicleIds?: string[];
   vehicleGroupIds?: string[];
   allowedMenus?: string[];
+  studentIds?: string[];
   mapProvider?: "GOOGLE" | "MAPLIBRE";
   placeSearchProvider?: "GOOGLE" | "OSM";
 };

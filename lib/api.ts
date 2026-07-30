@@ -245,6 +245,11 @@ export async function fetchActiveTrip(
   }
 }
 
+/** Ends a vehicle's currently active trip right away instead of waiting for its scheduled end time. */
+export async function finishActiveTrip(vehicleNo: string): Promise<void> {
+  await api.post(`/trip/vehicle/${vehicleNo}/finish`);
+}
+
 export async function initializeWaypoint(
   tripId: string,
   startDate: string,

@@ -5,7 +5,7 @@ import { useVehicleManageStore } from "@/store/vehicle-store"
 import { Vehicle, RfidType } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Bus, Cpu, FileCheck, Phone, Save, Satellite, X } from "lucide-react"
+import { Bus, Cpu, FileCheck, Phone, Save, Satellite, Smartphone, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -17,7 +17,7 @@ type VehicleFormProps = {
 }
 
 const EMPTY: Omit<Vehicle, "id"> = {
-    imei: "", number: "", name: "", description: "",
+    imei: "", deviceMobileNo: "", number: "", name: "", description: "",
     rfidType: "NONE", simNumber: "",
     rechargeExpiry: "", certificateExpiry: "",
     deviceManufacturer: "", deviceModelNumber: "",
@@ -112,6 +112,7 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
             const payload: any = {
                 id: editingVehicleId || undefined,
                 imei: form.imei,
+                deviceMobileNo: form.deviceMobileNo || null,
                 number: form.number,
                 name: form.name,
                 description: form.description,
@@ -280,6 +281,28 @@ export function VehicleForm({ mode, onClose }: VehicleFormProps) {
                             </SelectContent>
                         </Select>
                     </FormField>
+                </Section>
+
+                <Section icon={<Smartphone size={13} />} title="Phone Tracking">
+                    <p className="text-[11px] text-gray-400">
+                        Only for vehicles with no hardware tracker installed — the driver's
+                        phone becomes the GPS source instead. Leave blank for vehicles with a
+                        real tracker.
+                    </p>
+                    <FormField label="Driver Mobile No">
+                        <Input
+                            value={form.deviceMobileNo ?? ""}
+                            onChange={e => set("deviceMobileNo", e.target.value)}
+                            placeholder="e.g. 9876543210"
+                            className="font-mono"
+                        />
+                    </FormField>
+                    {form.deviceMobileNo && (
+                        <p className="text-[11px] text-amber-600">
+                            This vehicle's IMEI field above should hold a device label (not a
+                            real hardware IMEI) — e.g. <span className="font-mono">MOBILE-{form.number || "..."}</span>.
+                        </p>
+                    )}
                 </Section>
 
                 <Section icon={<Phone size={13} />} title="SIM & Expiry">

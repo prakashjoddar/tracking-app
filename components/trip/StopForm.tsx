@@ -323,7 +323,7 @@ export default function StopForm({ setShowMap }: StopFormProps) {
               </Select>
             </FormField>
 
-            <FormField label="Status">
+            <FormField label="Status ">
               <Radio.Group
                 options={states}
                 value={form.enable}
