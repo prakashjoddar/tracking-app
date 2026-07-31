@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { StopProposal } from "@/lib/types"
+import { StopProposal, TripType } from "@/lib/types"
 import { Bus, Check, MapPin, User, X, Loader2 } from "lucide-react"
 
 const REQUESTER_BADGE: Record<string, string> = {
@@ -12,6 +12,18 @@ const REQUESTER_BADGE: Record<string, string> = {
     ORG: "bg-slate-100 text-slate-600 border-slate-200",
     SUB_ORG: "bg-slate-100 text-slate-600 border-slate-200",
     SUPER: "bg-slate-100 text-slate-600 border-slate-200",
+}
+
+const TRIP_TYPE_LABEL: Record<TripType, string> = { PICKING: "Pickup", DROPPING: "Drop" }
+
+/** Trip name/type/timing, so an admin can tell requests apart without cross-referencing the trip list. */
+function tripSummary(proposal: StopProposal): string | null {
+    const parts = [
+        proposal.tripName,
+        proposal.tripType ? TRIP_TYPE_LABEL[proposal.tripType] : null,
+        proposal.tripStartTime && proposal.tripEndTime ? `${proposal.tripStartTime}–${proposal.tripEndTime}` : null,
+    ].filter(Boolean)
+    return parts.length > 0 ? parts.join(" · ") : null
 }
 
 type StopProposalCardProps = {
@@ -55,6 +67,7 @@ export function StopProposalCard({ proposal, onApprove, onReject }: StopProposal
                     <div className="min-w-0">
                         <p className="font-semibold text-sm truncate">{proposal.stopName || `Vehicle ${proposal.vehicleNo}`}</p>
                         <p className="text-xs text-gray-500 truncate">{proposal.vehicleNo}</p>
+                        {tripSummary(proposal) && <p className="text-xs text-blue-600 truncate">{tripSummary(proposal)}</p>}
                     </div>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border shrink-0 ${REQUESTER_BADGE[proposal.requestedByUserType] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>

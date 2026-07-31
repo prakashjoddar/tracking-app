@@ -422,6 +422,11 @@ export type StopProposal = {
   requestedByUserType: UserType;
   createdAt: string; // ISO LocalDateTime
   reviewedAt: string | null;
+  /** Trip context so an admin can identify the right request without cross-referencing the trip list. */
+  tripName: string | null;
+  tripType: TripType | null;
+  tripStartTime: string | null;
+  tripEndTime: string | null;
 };
 
 export type ReviewStopProposalRequest = {
