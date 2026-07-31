@@ -7,15 +7,20 @@ import { StopProposalCard } from "./StopProposalCard"
 import { MapPin, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
-export function StopProposalPanel() {
+type StopProposalPanelProps = {
+    /** Currently previewed request, if any — clicking a card selects it for the map preview beside this panel. */
+    selectedProposalId: string | null
+    onSelectProposal: (proposal: StopProposal) => void
+}
+
+export function StopProposalPanel({ selectedProposalId, onSelectProposal }: StopProposalPanelProps) {
     const [proposals, setProposals] = useState<StopProposal[]>([])
     const [loading, setLoading] = useState(false)
 
     const load = useCallback(async () => {
         setLoading(true)
         try {
-            const data = await fetchPendingStopProposals()
-            setProposals(data)
+            setProposals(await fetchPendingStopProposals())
         } catch (e) {
             console.error("Failed to fetch pending stop requests", e)
             toast.error("Failed to load stop requests")
@@ -27,6 +32,14 @@ export function StopProposalPanel() {
     useEffect(() => {
         load()
     }, [load])
+
+    // Default to previewing the first request so the map isn't empty on first load, and fall back
+    // to it whenever the previously selected one drops out of the list (approved/rejected/reloaded).
+    useEffect(() => {
+        if (proposals.length > 0 && !proposals.some((p) => p.id === selectedProposalId)) {
+            onSelectProposal(proposals[0])
+        }
+    }, [proposals, selectedProposalId, onSelectProposal])
 
     const handleApprove = async (id: string, finalSequence: number, reviewNote: string) => {
         try {
@@ -85,11 +98,13 @@ export function StopProposalPanel() {
                         <p className="text-sm font-medium">No stop requests pending review</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="flex flex-col gap-3">
                         {proposals.map((proposal) => (
                             <StopProposalCard
                                 key={proposal.id}
                                 proposal={proposal}
+                                selected={proposal.id === selectedProposalId}
+                                onSelect={() => onSelectProposal(proposal)}
                                 onApprove={(finalSequence, reviewNote) => handleApprove(proposal.id, finalSequence, reviewNote)}
                                 onReject={(reviewNote) => handleReject(proposal.id, reviewNote)}
                             />

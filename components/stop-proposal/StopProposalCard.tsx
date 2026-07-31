@@ -28,11 +28,14 @@ function tripSummary(proposal: StopProposal): string | null {
 
 type StopProposalCardProps = {
     proposal: StopProposal
+    /** Highlights this card and drives the map preview alongside the list — see StopProposalPanel. */
+    selected?: boolean
+    onSelect?: () => void
     onApprove: (finalSequence: number, reviewNote: string) => Promise<void>
     onReject: (reviewNote: string) => Promise<void>
 }
 
-export function StopProposalCard({ proposal, onApprove, onReject }: StopProposalCardProps) {
+export function StopProposalCard({ proposal, selected, onSelect, onApprove, onReject }: StopProposalCardProps) {
     const [finalSequence, setFinalSequence] = useState(String(proposal.requestedSequence))
     const [reviewNote, setReviewNote] = useState("")
     const [busy, setBusy] = useState<"approve" | "reject" | null>(null)
@@ -58,8 +61,8 @@ export function StopProposalCard({ proposal, onApprove, onReject }: StopProposal
     }
 
     return (
-        <div className="border rounded-xl p-4 shadow-sm bg-white">
-            <div className="flex items-start justify-between gap-2">
+        <div className={`border rounded-xl p-4 shadow-sm bg-white transition-shadow ${selected ? "ring-2 ring-blue-500 border-blue-300" : ""}`}>
+            <div className="flex items-start justify-between gap-2 cursor-pointer" onClick={onSelect}>
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="p-1.5 bg-blue-100 rounded-lg shrink-0">
                         <Bus size={16} className="text-blue-600" />
@@ -75,7 +78,7 @@ export function StopProposalCard({ proposal, onApprove, onReject }: StopProposal
                 </span>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 cursor-pointer" onClick={onSelect}>
                 <span className="flex items-center gap-1">
                     <MapPin size={11} />
                     Requested position #{proposal.requestedSequence}

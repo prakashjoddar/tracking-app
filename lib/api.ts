@@ -23,6 +23,7 @@ import {
   VehicleGroupEntry,
   VehicleGroupSaveRequest,
   StopProposal,
+  StopProposalContext,
   ReviewStopProposalRequest,
 } from "./types";
 import axios from "axios";
@@ -301,6 +302,12 @@ export async function deleteTripStops(tripId: string): Promise<void> {
 // ── Stop Proposal ─────────────────────────────────────────────────────────────
 export async function fetchPendingStopProposals(): Promise<StopProposal[]> {
   const res = await api.get<StopProposal[]>("/stop-proposal/pending");
+  return res.data;
+}
+
+/** The trip's route polyline + existing ordered stops, for the review page's map preview. */
+export async function fetchStopProposalContext(tripId: string): Promise<StopProposalContext> {
+  const res = await api.get<StopProposalContext>(`/stop-proposal/context/${tripId}`);
   return res.data;
 }
 

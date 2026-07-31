@@ -435,3 +435,15 @@ export type ReviewStopProposalRequest = {
   stopName?: string | null;
   reviewNote?: string | null;
 };
+
+/** GET /stop-proposal/context/{tripId} — the trip's route polyline + its existing stops, for the review-page map. */
+export type StopProposalContext = {
+  waypoint: string | null;
+  stops: {
+    id: string;
+    name: string;
+    sequence: number;
+    latitude: number | null;
+    longitude: number | null;
+  }[];
+};
