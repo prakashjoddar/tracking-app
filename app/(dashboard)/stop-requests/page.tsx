@@ -13,7 +13,7 @@ export default function StopRequestsPage() {
             <div className="w-[420px] border-r flex flex-col h-full overflow-hidden">
                 <StopProposalPanel selectedProposalId={selected?.id ?? null} onSelectProposal={setSelected} />
             </div>
-            <div className="flex-1 relative h-full">
+            <div className="flex-1 min-w-0 relative h-full">
                 <StopProposalMap proposal={selected} />
             </div>
         </div>

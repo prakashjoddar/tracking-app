@@ -59,9 +59,17 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
             stopMarkerManagerRef.current = new StopMarkerManager(map)
             mapRef.current = map
             setMapReady(true)
+            // The container can be zero-sized at the moment maplibregl.Map is constructed (e.g.
+            // its flex-1 column hasn't settled yet on first paint) — maplibre never notices a
+            // later resize on its own, so the canvas stays stuck at whatever size it first saw.
+            map.resize()
         })
 
+        const resizeObserver = new ResizeObserver(() => map.resize())
+        resizeObserver.observe(containerRef.current)
+
         return () => {
+            resizeObserver.disconnect()
             proposedMarkerRef.current?.remove()
             routeManagerRef.current?.clearRoute()
             stopMarkerManagerRef.current?.clearAll()
@@ -156,7 +164,7 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
 
     return (
         <div className="relative w-full h-full">
-            <div ref={containerRef} className="absolute inset-0" />
+            <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
 
             {!proposal && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/70">
