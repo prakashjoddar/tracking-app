@@ -18,6 +18,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
     { name: "Geo Fence", url: "/geofence", menuKey: "GEOFENCE" },
     { name: "Alert Settings", url: "/alert-config", menuKey: "ALERT_SETTINGS" },
     { name: "Trips", url: "/trip", menuKey: "TRIPS" },
+    { name: "Stop Requests", url: "/stop-requests", menuKey: "TRIPS" },
     { name: "Driver & Supervisor", url: "/driver-supervisor", menuKey: "DRIVER_SUPERVISOR" },
     { name: "Students", url: "/student", menuKey: "STUDENTS" },
     { name: "Sub Login", url: "/user", menuKey: "SUB_LOGIN" },

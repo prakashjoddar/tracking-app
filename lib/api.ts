@@ -22,6 +22,8 @@ import {
   AlertConfigUpdateRequest,
   VehicleGroupEntry,
   VehicleGroupSaveRequest,
+  StopProposal,
+  ReviewStopProposalRequest,
 } from "./types";
 import axios from "axios";
 
@@ -294,6 +296,28 @@ export async function deleteStops(ids: string[]): Promise<void> {
 
 export async function deleteTripStops(tripId: string): Promise<void> {
   await api.delete(`/stop/trip/${tripId}`);
+}
+
+// ── Stop Proposal ─────────────────────────────────────────────────────────────
+export async function fetchPendingStopProposals(): Promise<StopProposal[]> {
+  const res = await api.get<StopProposal[]>("/stop-proposal/pending");
+  return res.data;
+}
+
+export async function approveStopProposal(
+  id: string,
+  request: ReviewStopProposalRequest,
+): Promise<StopProposal> {
+  const res = await api.post<StopProposal>(`/stop-proposal/${id}/approve`, request);
+  return res.data;
+}
+
+export async function rejectStopProposal(
+  id: string,
+  request: ReviewStopProposalRequest,
+): Promise<StopProposal> {
+  const res = await api.post<StopProposal>(`/stop-proposal/${id}/reject`, request);
+  return res.data;
 }
 
 // ── Alert ─────────────────────────────────────────────────────────────────────

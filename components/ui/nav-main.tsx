@@ -7,6 +7,7 @@ import {
   Layers,
   LucideBellRing,
   Map as MapIcon,
+  MapPin,
   Route,
   Settings,
   type LucideIcon,
@@ -194,6 +195,17 @@ export function NavMain({
         />
       ),
       url: "/trip",
+      menuKey: "TRIPS",
+    },
+    {
+      name: "Stop Requests",
+      icon: (
+        <MapPin
+          className="size-4 mr-1"
+          style={{ color: menuColors[6] }}
+        />
+      ),
+      url: "/stop-requests",
       menuKey: "TRIPS",
     },
     {

@@ -402,3 +402,31 @@ export type VehicleGroupSaveRequest = {
   description: string;
   vehicleIds: string[];
 };
+
+// ── Stop Proposal ─────────────────────────────────────────────────────────────
+export type StopProposalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+/** A mobile-submitted "add a stop here" request — GET /stop-proposal/pending. */
+export type StopProposal = {
+  id: string;
+  tripId: string;
+  vehicleNo: string;
+  latitude: number | null;
+  longitude: number | null;
+  requestedSequence: number;
+  studentIds: string[];
+  stopName: string | null;
+  status: StopProposalStatus;
+  finalSequence: number | null;
+  reviewNote: string | null;
+  requestedByUserType: UserType;
+  createdAt: string; // ISO LocalDateTime
+  reviewedAt: string | null;
+};
+
+export type ReviewStopProposalRequest = {
+  finalSequence?: number | null;
+  studentIds?: string[];
+  stopName?: string | null;
+  reviewNote?: string | null;
+};
