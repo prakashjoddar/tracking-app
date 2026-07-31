@@ -238,9 +238,12 @@ export type MenuKey =
 
 export type ParentDetails = {
   name: string;
-  mobile: string;
+  mobileNo: string;
   email?: string;
   address?: string;
+  username?: string;
+  password?: string;
+  userId?: string;
 };
 
 export type StudentRequestResponse = {
@@ -255,6 +258,9 @@ export type StudentRequestResponse = {
   address: string;
   parents?: ParentDetails[];
   orgId?: number;
+  username?: string;
+  password?: string;
+  userId?: string;
 };
 
 // ── Geofence ──────────────────────────────────────────────────────────────────

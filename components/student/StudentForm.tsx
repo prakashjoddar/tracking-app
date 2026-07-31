@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { ParentDetails, StudentRequestResponse } from "@/lib/types"
 import { useStudentStore } from "@/store/student-store"
 import { Input } from "@/components/ui/input"
-import { Save, User, Phone, BookOpen, CreditCard, MapPin, X, Loader2, Plus, Trash2, Users } from "lucide-react"
+import { Save, User, Phone, BookOpen, CreditCard, MapPin, X, Loader2, Plus, Trash2, Users, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react"
 import { saveStudent } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -25,9 +25,11 @@ const defaultForm: Omit<StudentRequestResponse, "id" | "orgId"> = {
     mobileNo: "",
     address: "",
     parents: [],
+    username: "",
+    password: "",
 }
 
-const emptyParent = (): ParentDetails => ({ name: "", mobile: "", email: "", address: "" })
+const emptyParent = (): ParentDetails => ({ name: "", mobileNo: "", email: "", address: "", username: "", password: "" })
 
 // ── outside component — stable references ─────────────────────────────────────
 
@@ -63,6 +65,7 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
     const [parents, setParents] = useState<ParentDetails[]>([])
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState<Partial<Record<keyof StudentRequestResponse, string>>>({})
+    const [showPassword, setShowPassword] = useState(false)
 
     useEffect(() => {
         if (mode === "edit" && editingStudentId) {
@@ -85,12 +88,22 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
         if (!form.rollNo.trim()) e.rollNo = "Required"
         if (!form.standard.trim()) e.standard = "Required"
         if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email"
+        if (form.username?.trim()) {
+            if (!form.email?.trim()) e.email = "Email is required to enable a student login"
+            if (!form.userId && !form.password?.trim()) e.password = "Required to create a login"
+        }
         setErrors(e)
         return Object.keys(e).length === 0
     }
 
     const handleSave = async (): Promise<void> => {
         if (!validate()) return
+        const badParent = parents.find(p => p.name.trim() && p.username?.trim() &&
+            (!p.email?.trim() || (!p.userId?.trim() && !p.password?.trim())))
+        if (badParent) {
+            toast.error(`${badParent.name}: email is required, and a password is required to create a new parent login.`)
+            return
+        }
         try {
             setSaving(true)
             const payload: StudentRequestResponse = {
@@ -197,6 +210,31 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
                     </FormField>
                 </Section>
 
+                <Section icon={<Lock size={12} />} title="Student Login (optional)">
+                    <FormField label="Username" error={errors.username}>
+                        <Input value={form.username || ""} onChange={e => setForm({ ...form, username: e.target.value })}
+                            className="h-8 text-xs" placeholder="Leave blank — no student login" />
+                    </FormField>
+                    <FormField label="Password" error={errors.password}>
+                        <div className="relative">
+                            <Input type={showPassword ? "text" : "password"} value={form.password || ""}
+                                onChange={e => setForm({ ...form, password: e.target.value })}
+                                className={`h-8 text-xs pr-8 ${errors.password ? "border-red-400" : ""}`}
+                                placeholder={form.userId ? "Leave blank to keep" : "••••••••"} />
+                            <button type="button" onClick={() => setShowPassword(p => !p)}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                            </button>
+                        </div>
+                    </FormField>
+                    {form.userId && (
+                        <div className="col-span-2 flex items-center gap-1.5 text-[11px] text-green-600">
+                            <CheckCircle2 size={12} />
+                            <span>Login enabled for this student</span>
+                        </div>
+                    )}
+                </Section>
+
                 {/* Parents Section */}
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -253,8 +291,8 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
                                         <div className="space-y-1">
                                             <label className="text-[11px] font-medium text-gray-600 ml-0.5">Mobile *</label>
                                             <Input
-                                                value={parent.mobile}
-                                                onChange={e => setParentField(idx, "mobile", e.target.value)}
+                                                value={parent.mobileNo}
+                                                onChange={e => setParentField(idx, "mobileNo", e.target.value)}
                                                 className="h-8 text-xs bg-white"
                                                 placeholder="+91 98765 43210"
                                             />
@@ -278,6 +316,36 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
                                                 placeholder="Parent address (if different)"
                                             />
                                         </div>
+
+                                        <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 uppercase tracking-widest pt-1">
+                                            <Lock size={11} />
+                                            <span>Login (optional)</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-medium text-gray-600 ml-0.5">Username</label>
+                                            <Input
+                                                value={parent.username || ""}
+                                                onChange={e => setParentField(idx, "username", e.target.value)}
+                                                className="h-8 text-xs bg-white"
+                                                placeholder="Leave blank — no login"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-medium text-gray-600 ml-0.5">Password</label>
+                                            <Input
+                                                type="password"
+                                                value={parent.password || ""}
+                                                onChange={e => setParentField(idx, "password", e.target.value)}
+                                                className="h-8 text-xs bg-white"
+                                                placeholder={parent.userId ? "Leave blank to keep" : "••••••••"}
+                                            />
+                                        </div>
+                                        {parent.userId && (
+                                            <div className="col-span-2 flex items-center gap-1.5 text-[11px] text-green-600">
+                                                <CheckCircle2 size={12} />
+                                                <span>Login enabled for this parent</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Add next parent button — only on last card */}
