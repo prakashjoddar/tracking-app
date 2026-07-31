@@ -88,9 +88,8 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
         if (!form.rollNo.trim()) e.rollNo = "Required"
         if (!form.standard.trim()) e.standard = "Required"
         if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email"
-        if (form.username?.trim()) {
-            if (!form.email?.trim()) e.email = "Email is required to enable a student login"
-            if (!form.userId && !form.password?.trim()) e.password = "Required to create a login"
+        if (form.username?.trim() && !form.userId && !form.password?.trim()) {
+            e.password = "Required to create a login"
         }
         setErrors(e)
         return Object.keys(e).length === 0
@@ -99,9 +98,9 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
     const handleSave = async (): Promise<void> => {
         if (!validate()) return
         const badParent = parents.find(p => p.name.trim() && p.username?.trim() &&
-            (!p.email?.trim() || (!p.userId?.trim() && !p.password?.trim())))
+            !p.userId?.trim() && !p.password?.trim())
         if (badParent) {
-            toast.error(`${badParent.name}: email is required, and a password is required to create a new parent login.`)
+            toast.error(`${badParent.name}: a password is required to create a new parent login.`)
             return
         }
         try {
