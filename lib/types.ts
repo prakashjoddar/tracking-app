@@ -96,6 +96,8 @@ export type Trip = {
   forceKillHours?: number[] | null;
   /** Default false: once finished, this trip can't start again same day. True allows re-starting after completion. */
   allowMultipleRunsPerDay: boolean;
+  /** Default true: whether any mobile login (or this admin's own direct-add flow) can propose a new stop for this trip. */
+  allowStopProposals: boolean;
 };
 
 export type StopType = "BUS_STOP" | "PICK_DROP" | "INSTITUTE";

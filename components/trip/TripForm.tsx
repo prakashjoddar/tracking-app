@@ -111,6 +111,7 @@ export default function TripForm() {
   const [forceKillHours, setForceKillHours] = useState<number[]>([]);
   const [allowMultipleRunsPerDay, setAllowMultipleRunsPerDay] =
     useState<boolean>(false);
+  const [allowStopProposals, setAllowStopProposals] = useState<boolean>(true);
 
   // Driver selection
   const [driverDrawerOpen, setDriverDrawerOpen] = useState<boolean>(false);
@@ -178,6 +179,7 @@ export default function TripForm() {
       setKillAtMidnight(editingTrip.killAtMidnight ?? true);
       setForceKillHours(editingTrip.forceKillHours ?? []);
       setAllowMultipleRunsPerDay(editingTrip.allowMultipleRunsPerDay ?? false);
+      setAllowStopProposals(editingTrip.allowStopProposals ?? true);
     } else {
       setTripName("");
       setTripType("PICKING");
@@ -193,6 +195,7 @@ export default function TripForm() {
       setKillAtMidnight(true);
       setForceKillHours([]);
       setAllowMultipleRunsPerDay(false);
+      setAllowStopProposals(true);
       // Safety net: the shared stops store is per-page, not per-trip — without
       // this, whatever trip's stops were last loaded (e.g. via "Edit Stops")
       // stay in state and get silently re-parented onto the next trip created.
@@ -270,6 +273,7 @@ export default function TripForm() {
     setKillAtMidnight(true);
     setForceKillHours([]);
     setAllowMultipleRunsPerDay(false);
+    setAllowStopProposals(true);
   };
 
   const handleClear = () => {
@@ -302,6 +306,7 @@ export default function TripForm() {
         killAtMidnight,
         forceKillHours,
         allowMultipleRunsPerDay,
+        allowStopProposals,
       };
       const saved = await saveTrip(payload);
       if (editingTrip) {
@@ -570,6 +575,27 @@ export default function TripForm() {
             00:00 unless turned off; the extra hours above force-close it at
             those times too, regardless of the midnight setting.
           </p>
+        </Section>
+
+        <Section icon={<MapPin size={13} />} title="Stop Proposals">
+          <FormField label="Allow Stop Proposals ">
+            <Radio.Group
+              options={[
+                { label: "Off", value: false },
+                { label: "On", value: true },
+              ]}
+              value={allowStopProposals}
+              optionType="button"
+              buttonStyle="solid"
+              onChange={(e) => setAllowStopProposals(e.target.value)}
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              On (default): any driver, supervisor, parent, student, or admin
+              can propose a new stop for this trip from the mobile app, for
+              you to review here. Off: the "Propose a stop" option is hidden
+              for this trip and any attempt is rejected.
+            </p>
+          </FormField>
         </Section>
 
         <Section icon={<CarFront size={13} />} title="Drivers">
