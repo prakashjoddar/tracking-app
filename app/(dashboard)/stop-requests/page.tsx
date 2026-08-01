@@ -1,12 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { StopProposalPanel } from "@/components/stop-proposal/StopProposalPanel"
-import { StopProposalMap } from "@/components/stop-proposal/StopProposalMap"
+import { StopProposalMapEngine } from "@/components/stop-proposal/StopProposalMapEngine"
 import { StopProposal } from "@/lib/types"
+import { useCurrentUserStore } from "@/store/current-user-store"
 
 export default function StopRequestsPage() {
     const [selected, setSelected] = useState<StopProposal | null>(null)
+
+    const mapProvider = useCurrentUserStore((s) => s.user?.mapProvider) === "MAPLIBRE" ? "maplibre" : "google"
+    const fetchCurrentUserOnce = useCurrentUserStore((s) => s.fetchCurrentUserOnce)
+    useEffect(() => { fetchCurrentUserOnce() }, [fetchCurrentUserOnce])
 
     return (
         <div className="flex h-full w-full overflow-hidden">
@@ -14,7 +19,7 @@ export default function StopRequestsPage() {
                 <StopProposalPanel selectedProposalId={selected?.id ?? null} onSelectProposal={setSelected} />
             </div>
             <div className="flex-1 min-w-0 relative h-full">
-                <StopProposalMap proposal={selected} />
+                <StopProposalMapEngine provider={mapProvider} proposal={selected} />
             </div>
         </div>
     )
