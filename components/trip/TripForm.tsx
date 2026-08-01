@@ -593,7 +593,10 @@ export default function TripForm() {
               On (default): any driver, supervisor, parent, student, or admin
               can propose a new stop for this trip from the mobile app, for
               you to review here. Off: the "Propose a stop" option is hidden
-              for this trip and any attempt is rejected.
+              for this trip and any attempt is rejected — riders are told to
+              contact the school/college to have it turned back on. This does
+              not affect stop transfer requests (moving a student to an
+              existing stop), which are always available.
             </p>
           </FormField>
         </Section>

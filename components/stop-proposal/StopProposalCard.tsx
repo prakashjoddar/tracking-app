@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { StopProposal, TripType } from "@/lib/types"
-import { Bus, Check, MapPin, User, X, Loader2 } from "lucide-react"
+import { fetchStopProposalContext } from "@/lib/api"
+import { Bus, Check, MapPin, User, X, Loader2, ArrowRight } from "lucide-react"
 
 const REQUESTER_BADGE: Record<string, string> = {
     DRIVER: "bg-orange-50 text-orange-700 border-orange-200",
@@ -26,26 +27,56 @@ function tripSummary(proposal: StopProposal): string | null {
     return parts.length > 0 ? parts.join(" · ") : null
 }
 
+type StopOption = { id: string; name: string; sequence: number }
+
 type StopProposalCardProps = {
     proposal: StopProposal
     /** Highlights this card and drives the map preview alongside the list — see StopProposalPanel. */
     selected?: boolean
     onSelect?: () => void
-    onApprove: (finalSequence: number, reviewNote: string) => Promise<void>
+    onApprove: (overrides: { finalSequence?: number; targetStopId?: string }, reviewNote: string) => Promise<void>
     onReject: (reviewNote: string) => Promise<void>
 }
 
 export function StopProposalCard({ proposal, selected, onSelect, onApprove, onReject }: StopProposalCardProps) {
+    const isTransfer = proposal.type === "TRANSFER"
     const [finalSequence, setFinalSequence] = useState(String(proposal.requestedSequence))
+    const [targetStopId, setTargetStopId] = useState(proposal.targetStopId ?? "")
+    const [stopOptions, setStopOptions] = useState<StopOption[]>([])
     const [reviewNote, setReviewNote] = useState("")
     const [busy, setBusy] = useState<"approve" | "reject" | null>(null)
 
+    useEffect(() => {
+        if (!isTransfer) return
+        let cancelled = false
+        fetchStopProposalContext(proposal.tripId)
+            .then((context) => {
+                if (!cancelled) setStopOptions(context.stops)
+            })
+            .catch(() => {
+                if (!cancelled) setStopOptions([])
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [isTransfer, proposal.tripId])
+
     const handleApprove = async () => {
+        if (isTransfer) {
+            if (!targetStopId) return
+            setBusy("approve")
+            try {
+                await onApprove({ targetStopId }, reviewNote.trim())
+            } finally {
+                setBusy(null)
+            }
+            return
+        }
         const parsed = parseInt(finalSequence, 10)
         if (!Number.isFinite(parsed) || parsed < 1) return
         setBusy("approve")
         try {
-            await onApprove(parsed, reviewNote.trim())
+            await onApprove({ finalSequence: parsed }, reviewNote.trim())
         } finally {
             setBusy(null)
         }
@@ -68,7 +99,9 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
                         <Bus size={16} className="text-blue-600" />
                     </div>
                     <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{proposal.stopName || `Vehicle ${proposal.vehicleNo}`}</p>
+                        <p className="font-semibold text-sm truncate">
+                            {isTransfer ? "Stop transfer request" : proposal.stopName || `Vehicle ${proposal.vehicleNo}`}
+                        </p>
                         <p className="text-xs text-gray-500 truncate">{proposal.vehicleNo}</p>
                         {tripSummary(proposal) && <p className="text-xs text-blue-600 truncate">{tripSummary(proposal)}</p>}
                     </div>
@@ -79,10 +112,19 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 cursor-pointer" onClick={onSelect}>
-                <span className="flex items-center gap-1">
-                    <MapPin size={11} />
-                    Requested position #{proposal.requestedSequence}
-                </span>
+                {isTransfer ? (
+                    <span className="flex items-center gap-1">
+                        <MapPin size={11} />
+                        {proposal.sourceStopName ? `${proposal.sourceStopName} (#${proposal.sourceStopSequence})` : "Current stop"}
+                        <ArrowRight size={11} />
+                        {proposal.targetStopName ? `${proposal.targetStopName} (#${proposal.targetStopSequence})` : "?"}
+                    </span>
+                ) : (
+                    <span className="flex items-center gap-1">
+                        <MapPin size={11} />
+                        Requested position #{proposal.requestedSequence}
+                    </span>
+                )}
                 {proposal.studentIds.length > 0 && (
                     <span className="flex items-center gap-1">
                         <User size={11} />
@@ -92,7 +134,7 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
                 <span>{new Date(proposal.createdAt).toLocaleString()}</span>
             </div>
 
-            {proposal.latitude != null && proposal.longitude != null && (
+            {!isTransfer && proposal.latitude != null && proposal.longitude != null && (
                 <p className="mt-1 text-xs text-gray-400 font-mono">
                     {proposal.latitude.toFixed(5)}, {proposal.longitude.toFixed(5)}
                 </p>
@@ -100,15 +142,35 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
 
             <div className="mt-3 flex items-center gap-2">
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide shrink-0">
-                    Insert at
+                    {isTransfer ? "Transfer to" : "Insert at"}
                 </label>
-                <input
-                    type="number"
-                    min={1}
-                    value={finalSequence}
-                    onChange={(e) => setFinalSequence(e.target.value)}
-                    className="w-20 text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
-                />
+                {isTransfer ? (
+                    <select
+                        value={targetStopId}
+                        onChange={(e) => setTargetStopId(e.target.value)}
+                        className="flex-1 text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                    >
+                        <option value="" disabled>
+                            Select a stop...
+                        </option>
+                        {stopOptions
+                            .slice()
+                            .sort((a, b) => a.sequence - b.sequence)
+                            .map((stop) => (
+                                <option key={stop.id} value={stop.id}>
+                                    Stop {stop.sequence} — {stop.name}
+                                </option>
+                            ))}
+                    </select>
+                ) : (
+                    <input
+                        type="number"
+                        min={1}
+                        value={finalSequence}
+                        onChange={(e) => setFinalSequence(e.target.value)}
+                        className="w-20 text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                    />
+                )}
             </div>
 
             <textarea
@@ -130,7 +192,7 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
                 </button>
                 <button
                     onClick={handleApprove}
-                    disabled={busy !== null}
+                    disabled={busy !== null || (isTransfer && !targetStopId)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     {busy === "approve" ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}

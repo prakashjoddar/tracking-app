@@ -127,9 +127,20 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
                     }))
                 stopMarkerManagerRef.current.syncTripStopMarkers(plottedStops)
 
-                if (proposal.latitude != null && proposal.longitude != null) {
+                // NEW_STOP carries its own lat/lng; TRANSFER has none — highlight the target
+                // (existing) stop's location instead, so both kinds get an amber "here" pin.
+                let markerLngLat: [number, number] | null = null
+                if (proposal.type === "TRANSFER") {
+                    const target = context.stops.find((s) => s.id === proposal.targetStopId)
+                    if (target && target.latitude != null && target.longitude != null) {
+                        markerLngLat = [target.longitude, target.latitude]
+                    }
+                } else if (proposal.latitude != null && proposal.longitude != null) {
+                    markerLngLat = [proposal.longitude, proposal.latitude]
+                }
+                if (markerLngLat) {
                     proposedMarkerRef.current = new maplibregl.Marker({ element: buildProposedMarker() })
-                        .setLngLat([proposal.longitude, proposal.latitude])
+                        .setLngLat(markerLngLat)
                         .addTo(mapRef.current)
                 }
 
@@ -139,9 +150,9 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
                 const routeCoords = context.waypoint ? decodeEncodedPolyline(context.waypoint) : []
                 const lngs = routeCoords.map((c) => c[0]).concat(plottedStops.map((s) => s.longitude))
                 const lats = routeCoords.map((c) => c[1]).concat(plottedStops.map((s) => s.latitude))
-                if (proposal.latitude != null && proposal.longitude != null) {
-                    lngs.push(proposal.longitude)
-                    lats.push(proposal.latitude)
+                if (markerLngLat) {
+                    lngs.push(markerLngLat[0])
+                    lats.push(markerLngLat[1])
                 }
                 if (lngs.length > 0) {
                     mapRef.current.fitBounds(

@@ -101,7 +101,18 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
                     }))
                 stopMarkerManagerRef.current.syncTripStopMarkers(plottedStops)
 
-                if (proposal.latitude != null && proposal.longitude != null) {
+                // NEW_STOP carries its own lat/lng; TRANSFER has none — highlight the target
+                // (existing) stop's location instead, so both kinds get an amber "here" pin.
+                let markerPosition: { lat: number; lng: number } | null = null
+                if (proposal.type === "TRANSFER") {
+                    const target = context.stops.find((s) => s.id === proposal.targetStopId)
+                    if (target && target.latitude != null && target.longitude != null) {
+                        markerPosition = { lat: target.latitude, lng: target.longitude }
+                    }
+                } else if (proposal.latitude != null && proposal.longitude != null) {
+                    markerPosition = { lat: proposal.latitude, lng: proposal.longitude }
+                }
+                if (markerPosition) {
                     const pin = new google.maps.marker.PinElement({
                         background: "#f59e0b",
                         borderColor: "#b45309",
@@ -110,9 +121,9 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
                     })
                     proposedMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
                         map: mapRef.current,
-                        position: { lat: proposal.latitude, lng: proposal.longitude },
+                        position: markerPosition,
                         content: pin.element,
-                        title: "Requested stop",
+                        title: proposal.type === "TRANSFER" ? "Target stop" : "Requested stop",
                     })
                 }
 
@@ -130,8 +141,8 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
                     bounds.extend({ lat: s.latitude, lng: s.longitude })
                     hasBounds = true
                 })
-                if (proposal.latitude != null && proposal.longitude != null) {
-                    bounds.extend({ lat: proposal.latitude, lng: proposal.longitude })
+                if (markerPosition) {
+                    bounds.extend(markerPosition)
                     hasBounds = true
                 }
                 if (hasBounds) mapRef.current.fitBounds(bounds, 60)

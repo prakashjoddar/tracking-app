@@ -41,14 +41,14 @@ export function StopProposalPanel({ selectedProposalId, onSelectProposal }: Stop
         }
     }, [proposals, selectedProposalId, onSelectProposal])
 
-    const handleApprove = async (id: string, finalSequence: number, reviewNote: string) => {
+    const handleApprove = async (id: string, overrides: { finalSequence?: number; targetStopId?: string }, reviewNote: string) => {
         try {
-            await approveStopProposal(id, { finalSequence, reviewNote: reviewNote || undefined })
+            await approveStopProposal(id, { ...overrides, reviewNote: reviewNote || undefined })
             setProposals((prev) => prev.filter((p) => p.id !== id))
-            toast.success("Stop request approved")
+            toast.success("Request approved")
         } catch (e: any) {
             console.error("Failed to approve stop request", e)
-            toast.error(e.response?.data?.message || "Failed to approve stop request")
+            toast.error(e.response?.data?.message || "Failed to approve request")
         }
     }
 
@@ -105,7 +105,7 @@ export function StopProposalPanel({ selectedProposalId, onSelectProposal }: Stop
                                 proposal={proposal}
                                 selected={proposal.id === selectedProposalId}
                                 onSelect={() => onSelectProposal(proposal)}
-                                onApprove={(finalSequence, reviewNote) => handleApprove(proposal.id, finalSequence, reviewNote)}
+                                onApprove={(overrides, reviewNote) => handleApprove(proposal.id, overrides, reviewNote)}
                                 onReject={(reviewNote) => handleReject(proposal.id, reviewNote)}
                             />
                         ))}

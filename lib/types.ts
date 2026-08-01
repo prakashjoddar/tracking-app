@@ -407,12 +407,14 @@ export type VehicleGroupSaveRequest = {
 
 // ── Stop Proposal ─────────────────────────────────────────────────────────────
 export type StopProposalStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type StopProposalType = "NEW_STOP" | "TRANSFER";
 
-/** A mobile-submitted "add a stop here" request — GET /stop-proposal/pending. */
+/** A mobile-submitted "add a stop here" (or "move to a different stop") request — GET /stop-proposal/pending. */
 export type StopProposal = {
   id: string;
   tripId: string;
   vehicleNo: string;
+  type: StopProposalType;
   latitude: number | null;
   longitude: number | null;
   requestedSequence: number;
@@ -429,6 +431,13 @@ export type StopProposal = {
   tripType: TripType | null;
   tripStartTime: string | null;
   tripEndTime: string | null;
+  /** TRANSFER only. */
+  sourceStopId: string | null;
+  sourceStopName: string | null;
+  sourceStopSequence: number | null;
+  targetStopId: string | null;
+  targetStopName: string | null;
+  targetStopSequence: number | null;
 };
 
 export type ReviewStopProposalRequest = {
@@ -436,6 +445,8 @@ export type ReviewStopProposalRequest = {
   studentIds?: string[];
   stopName?: string | null;
   reviewNote?: string | null;
+  /** TRANSFER only — lets an admin change the target stop before approving. */
+  targetStopId?: string | null;
 };
 
 /** GET /stop-proposal/context/{tripId} — the trip's route polyline + its existing stops, for the review-page map. */
