@@ -102,8 +102,8 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
                         <p className="font-semibold text-sm truncate">
                             {isTransfer ? "Stop transfer request" : proposal.stopName || `Vehicle ${proposal.vehicleNo}`}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">{proposal.vehicleNo}</p>
-                        {tripSummary(proposal) && <p className="text-xs text-blue-600 truncate">{tripSummary(proposal)}</p>}
+                        <p className="text-xs text-gray-500">{proposal.vehicleNo}</p>
+                        {tripSummary(proposal) && <p className="text-xs text-blue-600">{tripSummary(proposal)}</p>}
                     </div>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border shrink-0 ${REQUESTER_BADGE[proposal.requestedByUserType] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
