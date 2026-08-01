@@ -17,10 +17,9 @@ const REQUESTER_BADGE: Record<string, string> = {
 
 const TRIP_TYPE_LABEL: Record<TripType, string> = { PICKING: "Pickup", DROPPING: "Drop" }
 
-/** Trip name/type/timing, so an admin can tell requests apart without cross-referencing the trip list. */
-function tripSummary(proposal: StopProposal): string | null {
+/** Trip type + timing, so an admin can tell requests apart without cross-referencing the trip list — kept apart from the trip name so it renders on its own line. */
+function tripTypeTime(proposal: StopProposal): string | null {
     const parts = [
-        proposal.tripName,
         proposal.tripType ? TRIP_TYPE_LABEL[proposal.tripType] : null,
         proposal.tripStartTime && proposal.tripEndTime ? `${proposal.tripStartTime}–${proposal.tripEndTime}` : null,
     ].filter(Boolean)
@@ -103,7 +102,8 @@ export function StopProposalCard({ proposal, selected, onSelect, onApprove, onRe
                             {isTransfer ? "Stop transfer request" : proposal.stopName || `Vehicle ${proposal.vehicleNo}`}
                         </p>
                         <p className="text-xs text-gray-500">{proposal.vehicleNo}</p>
-                        {tripSummary(proposal) && <p className="text-xs text-blue-600">{tripSummary(proposal)}</p>}
+                        {proposal.tripName && <p className="text-xs text-blue-600">{proposal.tripName}</p>}
+                        {tripTypeTime(proposal) && <p className="text-xs text-blue-600">{tripTypeTime(proposal)}</p>}
                     </div>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border shrink-0 ${REQUESTER_BADGE[proposal.requestedByUserType] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
