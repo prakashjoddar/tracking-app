@@ -58,8 +58,9 @@ export type Vehicle = {
   vehicleManufacturer: string;
   vehicleModelNumber: string;
   checkImeiExist: boolean;
-  /** Set on a damaged vehicle while it's covered by a substitute — the substitute's Vehicle.id. */
-  replacementVehicleId?: string | null;
+  /** Set on a damaged vehicle while it's covered by a substitute — the substitute's Vehicle.id,
+   * but serialized from the backend's `Integer` field, so it arrives as a number, not a string. */
+  replacementVehicleId?: number | null;
 };
 
 export type TripType = "PICKING" | "DROPPING";

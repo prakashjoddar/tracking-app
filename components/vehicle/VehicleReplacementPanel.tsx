@@ -7,11 +7,15 @@ import { SearchableSelect } from "@/components/ui/searchable-select"
 import { RefreshCw, ArrowLeftRight, X, Car, Save, Search } from "lucide-react"
 import { toast } from "sonner"
 
-// Builds the vehicleId → replacementVehicleId map from the server's current state.
+// Builds the vehicleId → replacementVehicleId map from the server's current state. `id` is always
+// a string, but `replacementVehicleId` comes back from the backend as a number (it's an `Integer`
+// there) — stringify it here so every downstream `===` comparison against a `Vehicle.id` (e.g. in
+// `getOptions` below, and `SearchableSelect`'s own value-matching) actually matches instead of
+// silently failing and showing the placeholder in place of the assigned replacement.
 const toReplacementsMap = (data: Vehicle[]): Record<string, string> => {
     const map: Record<string, string> = {}
     for (const v of data) {
-        if (v.replacementVehicleId) map[v.id] = v.replacementVehicleId
+        if (v.replacementVehicleId) map[v.id] = String(v.replacementVehicleId)
     }
     return map
 }
