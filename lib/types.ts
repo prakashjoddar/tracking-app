@@ -239,7 +239,13 @@ export type MenuKey =
   | "SUB_LOGIN"
   | "VEHICLE_REPLACEMENT";
 
+/** `id` is matched by gps_api's UserService#updateStudentDetail on save (present = update/attach
+ * that existing shared parent record; blank/absent = create a new one) — always round-trip `id`
+ * when editing an existing student or attaching an already-known parent, to avoid creating
+ * duplicate parent rows. A Parent can be linked to more than one Student, so editing a parent's
+ * fields on one student's form updates it everywhere it's linked. */
 export type ParentDetails = {
+  id?: string;
   name: string;
   mobileNo: string;
   email?: string;

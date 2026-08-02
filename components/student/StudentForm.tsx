@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ParentDetails, StudentRequestResponse } from "@/lib/types"
 import { useStudentStore } from "@/store/student-store"
 import { Input } from "@/components/ui/input"
-import { Save, User, Phone, BookOpen, CreditCard, MapPin, X, Loader2, Plus, Trash2, Users, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react"
+import { SearchableSelect } from "@/components/ui/searchable-select"
+import { Save, User, Phone, BookOpen, CreditCard, MapPin, X, Loader2, Plus, Trash2, Users, Lock, Eye, EyeOff, CheckCircle2, Search } from "lucide-react"
 import { saveStudent } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -66,6 +67,7 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState<Partial<Record<keyof StudentRequestResponse, string>>>({})
     const [showPassword, setShowPassword] = useState(false)
+    const [attachParentId, setAttachParentId] = useState("")
 
     useEffect(() => {
         if (mode === "edit" && editingStudentId) {
@@ -136,6 +138,30 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
 
     const setParentField = (idx: number, key: keyof ParentDetails, value: string) =>
         setParents(prev => prev.map((p, i) => i === idx ? { ...p, [key]: value } : p))
+
+    // Every parent contact already known org-wide, for "attach existing parent" — derived from the
+    // already-loaded student list (no dedicated endpoint), deduped by id since the same parent can
+    // legitimately be embedded on more than one student now that a Parent is shared.
+    const orgParents = useMemo(() => {
+        const byId = new Map<string, ParentDetails>()
+        students.forEach(s => (s.parents ?? []).forEach(p => { if (p.id) byId.set(p.id, p) }))
+        return Array.from(byId.values())
+    }, [students])
+
+    const attachableParents = useMemo(() => {
+        const alreadyAttached = new Set(parents.filter(p => p.id).map(p => p.id))
+        return orgParents.filter(p => !alreadyAttached.has(p.id))
+    }, [orgParents, parents])
+
+    const attachExistingParent = (id: string) => {
+        const found = orgParents.find(p => p.id === id)
+        if (!found) return
+        // Leave password blank regardless of the source — matches the existing "leave blank to
+        // keep" convention; saving this row still carries its `id`, so gps_api resolves it as the
+        // same shared parent rather than creating a duplicate.
+        setParents(prev => [...prev, { ...found, password: "" }])
+        setAttachParentId("")
+    }
 
     return (
         <div className="flex flex-col h-full bg-white">
@@ -249,6 +275,24 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
                         </button>
                     </div>
 
+                    {attachableParents.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <Search size={12} className="text-gray-400 shrink-0" />
+                            <div className="flex-1">
+                                <SearchableSelect
+                                    options={attachableParents.map(p => ({
+                                        value: p.id!,
+                                        label: p.name,
+                                        subLabel: p.mobileNo,
+                                    }))}
+                                    value={attachParentId}
+                                    onChange={attachExistingParent}
+                                    placeholder="Attach an existing parent..."
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {parents.length === 0 ? (
                         <div
                             onClick={addParent}
@@ -278,6 +322,11 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
 
                                     {/* Parent fields */}
                                     <div className="grid grid-cols-2 gap-3">
+                                        {parent.id && (
+                                            <div className="col-span-2 text-[10px] text-indigo-500">
+                                                Shared parent — editing these details updates every student they&apos;re linked to.
+                                            </div>
+                                        )}
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[11px] font-medium text-gray-600 ml-0.5">Full Name *</label>
                                             <Input
