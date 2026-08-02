@@ -5,6 +5,7 @@ import { useTripStops } from "@/hooks/useTripStops";
 import { useOrgGeofences } from "@/hooks/useOrgGeofences";
 import { useFleetMapCamera } from "@/hooks/useFleetMapCamera";
 import { VehicleLocation } from "@/lib/types";
+import { formatTime } from "@/lib/utils";
 import { useHistoryStore } from "@/store/history-store";
 import { useVehicleStore } from "@/store/location-store";
 import { useMapsStore } from "@/store/maps-store";
@@ -444,7 +445,7 @@ export function GoogleMapView() {
             <div>Signal: {activeVehicle.signalStrength}%</div>
             <div>Satellites: {activeVehicle.noOfSatellites}</div>
             <div>
-              Time: {activeVehicle.date} {activeVehicle.time}
+              Time: {activeVehicle.date} {formatTime(activeVehicle.time)}
             </div>
           </div>
         </div>

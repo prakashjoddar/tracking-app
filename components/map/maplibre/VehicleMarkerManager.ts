@@ -3,6 +3,7 @@ import Supercluster from "supercluster";
 import { VehicleLocation } from "@/lib/types";
 import { markerStatusColor } from "@/mock-data/locations";
 import { useMapsStore } from "@/store/maps-store";
+import { formatTime } from "@/lib/utils";
 
 type VehicleProps = { vehicleNo: string };
 
@@ -158,7 +159,7 @@ export class VehicleMarkerManager {
               <div>Signal: <span class="signal">${vehicle.signalStrength ?? 0}</span>%</div>
               <div>Satellites: <span class="sat">${vehicle.noOfSatellites ?? 0}</span></div>
               <div style="margin-top:4px;font-size:11px;color:#6b7280">
-                <div class="time">${vehicle.date} ${vehicle.time}</div>
+                <div class="time">${vehicle.date} ${formatTime(vehicle.time)}</div>
               </div>
             </div>
 
@@ -224,7 +225,7 @@ export class VehicleMarkerManager {
         if (state.speedEl) state.speedEl.textContent = String(vehicle.speed ?? 0);
         if (state.signalEl) state.signalEl.textContent = String(vehicle.signalStrength ?? 0);
         if (state.satelliteEl) state.satelliteEl.textContent = String(vehicle.noOfSatellites ?? 0);
-        if (state.timeEl) state.timeEl.textContent = `${vehicle.date} ${vehicle.time}`;
+        if (state.timeEl) state.timeEl.textContent = `${vehicle.date} ${formatTime(vehicle.time)}`;
 
         const selectedId = useMapsStore.getState().selectedLocationId;
         if (vehicle.vehicleNo === selectedId) {

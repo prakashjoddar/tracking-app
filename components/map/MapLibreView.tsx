@@ -13,6 +13,7 @@ import { useOrgGeofences } from "@/hooks/useOrgGeofences";
 import { useFleetMapCameraMapLibre } from "@/hooks/useFleetMapCameraMapLibre";
 import { VehicleLocation } from "@/lib/types";
 import { resolveUserPhotoUrl } from "@/lib/api";
+import { formatTime } from "@/lib/utils";
 import { useVehicleStore } from "@/store/location-store";
 import { useMapsStore } from "@/store/maps-store";
 import { useGeofenceStore } from "@/store/geofence-store";
@@ -384,7 +385,7 @@ export function MapLibreView() {
             <div>Ignition: {activeVehicle.ignition ? "ON" : "OFF"}</div>
             <div>Signal: {activeVehicle.signalStrength}%</div>
             <div>Satellites: {activeVehicle.noOfSatellites}</div>
-            <div>Time: {activeVehicle.date} {activeVehicle.time}</div>
+            <div>Time: {activeVehicle.date} {formatTime(activeVehicle.time)}</div>
           </div>
         </div>
       )}

@@ -18,7 +18,7 @@ import { BiSignal1, BiSignal2, BiSignal3, BiSignal4, BiSignal5 } from "react-ico
 import { IoRocketSharp } from "react-icons/io5"
 import { LiaSatelliteDishSolid } from "react-icons/lia"
 import { SearchableSelect } from "../ui/searchable-select"
-import { cn } from "@/lib/utils"
+import { cn, formatTime } from "@/lib/utils"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { fetchVehicles, fetchVehicleLocationHistory } from "@/lib/api"
 import { toast } from "sonner"
@@ -276,7 +276,7 @@ export default function PlaybackPanel() {
                         {/* Timeline */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-[11px] text-gray-400">
-                                <span>{p ? `${p.date} ${p.time}` : "—"}</span>
+                                <span>{p ? `${p.date} ${formatTime(p.time)}` : "—"}</span>
                                 <span>{index + 1} / {totalPoints}</span>
                             </div>
 
@@ -417,7 +417,7 @@ export default function PlaybackPanel() {
                                     <StatCard
                                         icon={<Clock size={13} className="text-blue-600" />}
                                         label="Time"
-                                        value={p.time}
+                                        value={formatTime(p.time)}
                                         sub={p.date}
                                         accent="bg-blue-100"
                                     />

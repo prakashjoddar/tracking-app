@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { VehicleLocation } from "@/lib/types"
-import { cn } from "@/lib/utils"
+import { cn, formatTime } from "@/lib/utils"
 import { Bell, Edit, Route, Navigation } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { BiSignal1, BiSignal2, BiSignal3, BiSignal4, BiSignal5 } from "react-icons/bi"
@@ -118,7 +118,7 @@ export function VehicleCard({
                             )}
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {location.date} · {location.time}
+                            {location.date} · {formatTime(location.time)}
                         </p>
                     </div>
 
