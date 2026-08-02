@@ -118,7 +118,7 @@ function NotificationCard({ n, now }: { n: NotificationEvent; now: number }) {
                     </div>
                     <p className="text-sm leading-snug mt-1.5 break-words">{n.message}</p>
                     <span className="inline-block mt-1.5 px-1.5 py-0.5 rounded-md bg-sidebar-accent text-muted-foreground font-mono text-[11px] font-medium">
-                        {n.vehicleNo}
+                        {n.vehicleName ? `${n.vehicleName} (${n.vehicleNo})` : n.vehicleNo}
                     </span>
                 </div>
             </div>

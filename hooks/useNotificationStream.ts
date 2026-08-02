@@ -12,18 +12,27 @@ function getAccessToken(): string | null {
   return match ? match[2] : null;
 }
 
+function formatEventTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 function notifyToast(event: NotificationEvent) {
+  const time = formatEventTime(event.dateTime);
+  const vehicleLabel = event.vehicleName || event.vehicleNo;
   const title =
     event.source === "TRIP_ALERT"
       ? event.message
-      : `${event.vehicleNo} — ${event.message ?? event.type}`;
+      : `${vehicleLabel} — ${event.message ?? event.type}`;
+  const description = time ? time : undefined;
 
   if (event.priority === "CRITICAL" || event.priority === "HIGH" || event.type === "STOP_SKIPPED_MISSED") {
-    toast.error(title);
+    toast.error(title, { description });
   } else if (event.priority === "MEDIUM") {
-    toast.warning(title);
+    toast.warning(title, { description });
   } else {
-    toast.info(title);
+    toast.info(title, { description });
   }
 }
 

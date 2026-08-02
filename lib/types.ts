@@ -313,6 +313,7 @@ export type NotificationEvent = {
   id: string;
   source: NotificationSource;
   vehicleNo: string;
+  vehicleName?: string | null;
   orgId: number;
   type: VehicleAlertType | AlertType | string;
   message: string;
