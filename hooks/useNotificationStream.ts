@@ -12,6 +12,8 @@ function getAccessToken(): string | null {
   return match ? match[2] : null;
 }
 
+// `event.dateTime` now carries an explicit UTC offset (see gps-engine's NotificationEvent), so
+// this renders in the browser's own local timezone rather than the server's.
 function formatEventTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -20,19 +22,19 @@ function formatEventTime(iso: string): string {
 
 function notifyToast(event: NotificationEvent) {
   const time = formatEventTime(event.dateTime);
+  const message = time ? `${time} - ${event.message}` : event.message;
   const vehicleLabel = event.vehicleName || event.vehicleNo;
   const title =
     event.source === "TRIP_ALERT"
-      ? event.message
-      : `${vehicleLabel} — ${event.message ?? event.type}`;
-  const description = time ? time : undefined;
+      ? message
+      : `${vehicleLabel} — ${message ?? event.type}`;
 
   if (event.priority === "CRITICAL" || event.priority === "HIGH" || event.type === "STOP_SKIPPED_MISSED") {
-    toast.error(title, { description });
+    toast.error(title);
   } else if (event.priority === "MEDIUM") {
-    toast.warning(title, { description });
+    toast.warning(title);
   } else {
-    toast.info(title, { description });
+    toast.info(title);
   }
 }
 
