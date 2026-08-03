@@ -95,6 +95,7 @@ export default function AlertConfigPage() {
                         title="Edit Alert Config"
                         subtitle={`${selectedConfig.vehicleNo} — ${selectedConfig.vehicleName || "Unnamed"}`}
                         initial={selectedConfig}
+                        orgDefault={defaultConfig}
                         showReset={selectedConfig.overridden}
                         onClose={closeForm}
                         onSave={async (payload) => {

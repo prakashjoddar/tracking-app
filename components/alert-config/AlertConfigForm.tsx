@@ -3,13 +3,27 @@
 import { useEffect, useState } from "react"
 import { AlertConfigUpdateRequest } from "@/lib/types"
 import { Switch } from "@/components/ui/switch"
-import { BellRing, Gauge, RotateCcw, Save, X } from "lucide-react"
+import { BellRing, Gauge, RotateCcw, Save, Timer, X } from "lucide-react"
 import { toast } from "sonner"
+
+/** Mirrors gps-engine's AlertConfigService hardcoded fallback defaults (app.trip.approach-radius-m,
+ * app.trip.departure-multiplier, app.trip.sequence-stall-timeout-min, app.geofence.confirm-points)
+ * — used only to show what's currently in effect as placeholder text when a field is left blank. */
+const ENGINE_DEFAULTS = {
+    approachRadiusM: 1000,
+    departureMultiplier: 2,
+    missedStopTimeoutMin: 20,
+    geofenceConfirmPoints: 2,
+}
 
 type AlertConfigFormProps = {
     title: string
     subtitle: string
     initial: AlertConfigUpdateRequest
+    /** The org default's values — used only for placeholder text on the 4 optional Trip Timing
+     * fields when editing a per-vehicle form (omitted when editing the org default itself, since
+     * there's nothing further to fall back to but the hardcoded engine default). */
+    orgDefault?: AlertConfigUpdateRequest | null
     /** Shown only when editing a vehicle that currently has an explicit override. */
     showReset?: boolean
     onClose: () => void
@@ -46,7 +60,7 @@ const ToggleRow = ({ label, checked, onChange }: { label: string; checked: boole
 
 const inputClass = "w-full text-sm border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
 
-export function AlertConfigForm({ title, subtitle, initial, showReset, onClose, onSave, onReset }: AlertConfigFormProps) {
+export function AlertConfigForm({ title, subtitle, initial, orgDefault, showReset, onClose, onSave, onReset }: AlertConfigFormProps) {
 
     const [form, setForm] = useState<AlertConfigUpdateRequest>(initial)
     const [saving, setSaving] = useState(false)
@@ -157,6 +171,52 @@ export function AlertConfigForm({ title, subtitle, initial, showReset, onClose, 
                         <ToggleRow label="Low Battery" checked={form.lowBatteryAlert} onChange={(v) => set("lowBatteryAlert", v)} />
                         <ToggleRow label="Geofence Enter/Exit" checked={form.geoFenceAlert} onChange={(v) => set("geoFenceAlert", v)} />
                         <ToggleRow label="Trip" checked={form.tripAlert} onChange={(v) => set("tripAlert", v)} />
+                    </div>
+                </Section>
+
+                <Section icon={<Timer size={13} />} title="Trip Timing (optional)">
+                    <p className="text-[11px] text-gray-400 -mt-1">
+                        Leave blank to use the value shown as a placeholder — the org default, or the app's own built-in default.
+                    </p>
+                    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
+                        <FormField label="Approach / Arriving Distance" suffix="m">
+                            <input
+                                type="number" step="1"
+                                value={form.approachRadiusM ?? ""}
+                                onChange={(e) => set("approachRadiusM", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.approachRadiusM ?? ENGINE_DEFAULTS.approachRadiusM)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                        <FormField label="Departure Multiplier" suffix="× stop radius">
+                            <input
+                                type="number" step="0.1"
+                                value={form.departureMultiplier ?? ""}
+                                onChange={(e) => set("departureMultiplier", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.departureMultiplier ?? ENGINE_DEFAULTS.departureMultiplier)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                    </div>
+                    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
+                        <FormField label="Missed Stop Timeout" suffix="min">
+                            <input
+                                type="number" step="1"
+                                value={form.missedStopTimeoutMin ?? ""}
+                                onChange={(e) => set("missedStopTimeoutMin", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.missedStopTimeoutMin ?? ENGINE_DEFAULTS.missedStopTimeoutMin)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                        <FormField label="Geofence Confirm Points" suffix="GPS points">
+                            <input
+                                type="number" step="1"
+                                value={form.geofenceConfirmPoints ?? ""}
+                                onChange={(e) => set("geofenceConfirmPoints", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.geofenceConfirmPoints ?? ENGINE_DEFAULTS.geofenceConfirmPoints)}
+                                className={inputClass}
+                            />
+                        </FormField>
                     </div>
                 </Section>
 

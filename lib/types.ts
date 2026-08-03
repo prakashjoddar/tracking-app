@@ -420,6 +420,13 @@ export type AlertConfigEntry = {
   geoFenceAlert: boolean;
   tripAlert: boolean;
   overridden: boolean;
+  // Optional — null means "not set here"; gps-engine falls back to org default, then its own
+  // hardcoded constant (see gps-engine's AlertConfigService). Unlike the fields above, these are
+  // never backfilled with a concrete value by gps_api.
+  approachRadiusM: number | null;
+  departureMultiplier: number | null;
+  missedStopTimeoutMin: number | null;
+  geofenceConfirmPoints: number | null;
 };
 
 export type AlertConfigUpdateRequest = Omit<AlertConfigEntry, "vehicleNo" | "vehicleName" | "overridden">;
