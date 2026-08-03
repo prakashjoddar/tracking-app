@@ -23,6 +23,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -37,6 +38,7 @@ import { ImStatsDots } from "react-icons/im";
 import { MdCampaign, MdChat } from "react-icons/md";
 import { RiDashboardLine, RiParentLine, RiRoadMapLine } from "react-icons/ri";
 import { getCurrentUserType } from "@/lib/utils";
+import { useChatUnreadStore } from "@/store/chat-unread-store";
 import { useCurrentUserStore } from "@/store/current-user-store";
 import type { MenuKey, UserType } from "@/lib/types";
 
@@ -73,6 +75,7 @@ export function NavMain({
   const [userType, setUserType] = useState<UserType | null>(null);
   const currentUser = useCurrentUserStore((s) => s.user);
   const fetchCurrentUserOnce = useCurrentUserStore((s) => s.fetchCurrentUserOnce);
+  const chatUnreadCount = useChatUnreadStore((s) => s.unreadCount);
 
   useEffect(() => {
     setUserType(getCurrentUserType());
@@ -298,7 +301,9 @@ export function NavMain({
                   <span className="text-sm">{item.name}</span>
                 </Link>
               </SidebarMenuButton>
-              {/* <SidebarMenuBadge>""</SidebarMenuBadge> */}
+              {item.menuKey === "CHAT" && chatUnreadCount > 0 && (
+                <SidebarMenuBadge>{chatUnreadCount}</SidebarMenuBadge>
+              )}
             </SidebarMenuItem>
           ))}
 
