@@ -275,23 +275,21 @@ export function StudentForm({ mode, onClose }: StudentFormProps) {
                         </button>
                     </div>
 
-                    {attachableParents.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            <Search size={12} className="text-gray-400 shrink-0" />
-                            <div className="flex-1">
-                                <SearchableSelect
-                                    options={attachableParents.map(p => ({
-                                        value: p.id!,
-                                        label: p.name,
-                                        subLabel: p.mobileNo,
-                                    }))}
-                                    value={attachParentId}
-                                    onChange={attachExistingParent}
-                                    placeholder="Attach an existing parent..."
-                                />
-                            </div>
+                    <div className="flex items-center gap-2">
+                        <Search size={12} className="text-gray-400 shrink-0" />
+                        <div className="flex-1">
+                            <SearchableSelect
+                                options={attachableParents.map(p => ({
+                                    value: p.id!,
+                                    label: p.name,
+                                    subLabel: p.mobileNo,
+                                }))}
+                                value={attachParentId}
+                                onChange={attachExistingParent}
+                                placeholder="Attach an existing parent..."
+                            />
                         </div>
-                    )}
+                    </div>
 
                     {parents.length === 0 ? (
                         <div
