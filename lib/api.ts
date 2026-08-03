@@ -25,6 +25,9 @@ import {
   StopProposal,
   StopProposalContext,
   ReviewStopProposalRequest,
+  ConversationSummary,
+  ChatMessageResponse,
+  SendChatMessageRequest,
 } from "./types";
 import axios from "axios";
 
@@ -368,6 +371,42 @@ export async function fetchAnnouncements(
     params: { page, size },
   });
   return res.data;
+}
+
+// ── Chat — reply-only on the web admin panel; only PARENT/STUDENT (mobile-only roles) may
+// originate a conversation, so there's no contacts/new-chat endpoint used here. ─────────────────
+export async function fetchChatConversations(): Promise<ConversationSummary[]> {
+  const res = await api.get<ConversationSummary[]>("/chat/conversations");
+  return res.data;
+}
+
+export async function fetchChatThread(
+  otherUserId: number,
+  page: number,
+  size = 25,
+): Promise<Page<ChatMessageResponse>> {
+  const res = await api.get<Page<ChatMessageResponse>>(`/chat/thread/${otherUserId}`, {
+    params: { page, size },
+  });
+  return res.data;
+}
+
+/** Lightweight poll for a thread that's already open — only messages after `lastMessageId`. */
+export async function fetchChatThreadSince(
+  otherUserId: number,
+  lastMessageId: number,
+): Promise<ChatMessageResponse[]> {
+  const res = await api.get<ChatMessageResponse[]>(`/chat/thread/${otherUserId}/since/${lastMessageId}`);
+  return res.data;
+}
+
+export async function sendChatMessage(request: SendChatMessageRequest): Promise<ChatMessageResponse> {
+  const res = await api.post<ChatMessageResponse>("/chat/messages", request);
+  return res.data;
+}
+
+export async function markChatThreadRead(otherUserId: number): Promise<void> {
+  await api.post(`/chat/thread/${otherUserId}/read`);
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────

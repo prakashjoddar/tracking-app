@@ -237,7 +237,8 @@ export type MenuKey =
   | "DRIVER_SUPERVISOR"
   | "STUDENTS"
   | "SUB_LOGIN"
-  | "VEHICLE_REPLACEMENT";
+  | "VEHICLE_REPLACEMENT"
+  | "CHAT";
 
 /** `id` is matched by gps_api's UserService#updateStudentDetail on save (present = update/attach
  * that existing shared parent record; blank/absent = create a new one) — always round-trip `id`
@@ -303,6 +304,31 @@ export type AnnouncementResponse = {
   recipientType: RecipientType;
   text: string;
   createdAt: string; // ISO LocalDateTime
+};
+
+// ── Chat — 1:1 direct chat between a PARENT/STUDENT and their driver/supervisor/org admin only.
+// The web admin panel is reply-only: only PARENT/STUDENT (mobile-only roles) may originate a
+// conversation, so there's no contact-picker on this side. ──────────────────────────────────────
+export type ConversationSummary = {
+  otherUserId: number;
+  otherUserName: string;
+  otherUserType: string;
+  lastMessageText: string;
+  lastMessageAt: string;
+  unreadCount: number;
+};
+
+export type ChatMessageResponse = {
+  id: number;
+  senderId: number;
+  recipientId: number;
+  text: string;
+  createdAt: string;
+};
+
+export type SendChatMessageRequest = {
+  recipientId: number;
+  text: string;
 };
 
 // ── Notification (live, SSE) ─────────────────────────────────────────────────

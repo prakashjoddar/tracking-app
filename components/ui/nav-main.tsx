@@ -34,7 +34,7 @@ import { AiTwotoneCar } from "react-icons/ai";
 import { BsFillGeoFill } from "react-icons/bs";
 import { FaUsersCog } from "react-icons/fa";
 import { ImStatsDots } from "react-icons/im";
-import { MdCampaign } from "react-icons/md";
+import { MdCampaign, MdChat } from "react-icons/md";
 import { RiDashboardLine, RiParentLine, RiRoadMapLine } from "react-icons/ri";
 import { getCurrentUserType } from "@/lib/utils";
 import { useCurrentUserStore } from "@/store/current-user-store";
@@ -151,6 +151,17 @@ export function NavMain({
       ),
       url: "/announcement",
       menuKey: "ANNOUNCEMENTS",
+    },
+    {
+      name: "Chat",
+      icon: (
+        <MdChat
+          className="size-4 mr-1"
+          style={{ color: menuColors[2] }}
+        />
+      ),
+      url: "/chat",
+      menuKey: "CHAT",
     },
     {
       name: "Reports",

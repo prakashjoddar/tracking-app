@@ -14,6 +14,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
     { name: "Vehicle Groups", url: "/vehicle-group", menuKey: "VEHICLE_GROUPS" },
     { name: "Alerts", url: "/alert", menuKey: "ALERTS" },
     { name: "Announcements", url: "/announcement", menuKey: "ANNOUNCEMENTS" },
+    { name: "Chat", url: "/chat", menuKey: "CHAT" },
     { name: "Reports", url: "/report", menuKey: "REPORTS" },
     { name: "Geo Fence", url: "/geofence", menuKey: "GEOFENCE" },
     { name: "Alert Settings", url: "/alert-config", menuKey: "ALERT_SETTINGS" },
