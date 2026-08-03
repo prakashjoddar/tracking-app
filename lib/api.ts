@@ -1,9 +1,9 @@
 import {
   ActiveTrip,
   Alert,
-  MessageResponse,
+  AnnouncementResponse,
   Page,
-  SendMessageRequest,
+  SendAnnouncementRequest,
   StudentRequestResponse,
   Stop,
   Trip,
@@ -352,19 +352,19 @@ export async function fetchVehicleAlerts(
   return res.data;
 }
 
-// ── Message ───────────────────────────────────────────────────────────────────
-export async function sendMessage(
-  request: SendMessageRequest,
-): Promise<MessageResponse> {
-  const res = await api.post<MessageResponse>("/message", request);
+// ── Announcement ──────────────────────────────────────────────────────────────
+export async function sendAnnouncement(
+  request: SendAnnouncementRequest,
+): Promise<AnnouncementResponse> {
+  const res = await api.post<AnnouncementResponse>("/announcement", request);
   return res.data;
 }
 
-export async function fetchMessages(
+export async function fetchAnnouncements(
   page: number,
   size = 25,
-): Promise<Page<MessageResponse>> {
-  const res = await api.get<Page<MessageResponse>>("/message", {
+): Promise<Page<AnnouncementResponse>> {
+  const res = await api.get<Page<AnnouncementResponse>>("/announcement", {
     params: { page, size },
   });
   return res.data;

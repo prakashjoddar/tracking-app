@@ -229,7 +229,7 @@ export type MenuKey =
   | "VEHICLE_DETAILS"
   | "VEHICLE_GROUPS"
   | "ALERTS"
-  | "MESSAGES"
+  | "ANNOUNCEMENTS"
   | "REPORTS"
   | "GEOFENCE"
   | "ALERT_SETTINGS"
@@ -288,16 +288,16 @@ export type Geofence = {
   orgId?: number;
 };
 
-// ── Message ───────────────────────────────────────────────────────────────────
+// ── Announcement ──────────────────────────────────────────────────────────────
 export type RecipientType = "PARENT" | "STUDENT" | "DRIVER" | "SUPERVISOR" | "ALL";
 
-export type SendMessageRequest = {
+export type SendAnnouncementRequest = {
   vehicleNo: string | null; // null = all vehicles
   recipientType: RecipientType;
   text: string;
 };
 
-export type MessageResponse = {
+export type AnnouncementResponse = {
   id: number;
   vehicleNo: string | null;
   recipientType: RecipientType;

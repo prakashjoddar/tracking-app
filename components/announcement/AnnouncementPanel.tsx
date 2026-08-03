@@ -1,12 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { fetchMessages, sendMessage } from "@/lib/api"
-import { MessageResponse, RecipientType } from "@/lib/types"
+import { fetchAnnouncements, sendAnnouncement } from "@/lib/api"
+import { AnnouncementResponse, RecipientType } from "@/lib/types"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import {
-    MessageSquare, Send, Bus, Users, GraduationCap, User, RefreshCw,
+    Megaphone, Send, Bus, Users, GraduationCap, User, RefreshCw,
     ChevronLeft, ChevronRight, Loader2, Car, ShieldCheck, type LucideIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -32,7 +32,7 @@ const recipientBadgeStyle: Record<RecipientType, string> = {
 
 const HISTORY_COLS = "170px 200px 110px minmax(0,1fr)"
 
-export function MessagePanel() {
+export function AnnouncementPanel() {
     const vehicles = useVehicleManageStore((s) => s.vehicles)
     const fetchVehicles = useVehicleManageStore((s) => s.fetchVehicles)
     useEffect(() => {
@@ -44,30 +44,30 @@ export function MessagePanel() {
     const [text, setText] = useState("")
     const [sending, setSending] = useState(false)
 
-    const [messages, setMessages] = useState<MessageResponse[]>([])
+    const [announcements, setAnnouncements] = useState<AnnouncementResponse[]>([])
     const [page, setPage] = useState(0)
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
     const [loading, setLoading] = useState(false)
 
-    const loadMessages = useCallback(async (p: number) => {
+    const loadAnnouncements = useCallback(async (p: number) => {
         setLoading(true)
         try {
-            const data = await fetchMessages(p, pageSize)
-            setMessages(data.content)
+            const data = await fetchAnnouncements(p, pageSize)
+            setAnnouncements(data.content)
             setTotalPages(data.totalPages)
             setTotalElements(data.totalElements)
         } catch (e) {
-            console.error("Failed to fetch messages", e)
+            console.error("Failed to fetch announcements", e)
         } finally {
             setLoading(false)
         }
     }, [pageSize])
 
     useEffect(() => {
-        loadMessages(page)
-    }, [page, loadMessages])
+        loadAnnouncements(page)
+    }, [page, loadAnnouncements])
 
     const handlePageSizeChange = (size: number) => {
         setPageSize(size)
@@ -86,25 +86,25 @@ export function MessagePanel() {
 
     const handleSend = async () => {
         if (!text.trim()) {
-            toast.error("Message text is required")
+            toast.error("Announcement text is required")
             return
         }
         setSending(true)
         try {
-            await sendMessage({ vehicleNo: vehicleNo || null, recipientType, text: text.trim() })
-            toast.success("Message sent")
+            await sendAnnouncement({ vehicleNo: vehicleNo || null, recipientType, text: text.trim() })
+            toast.success("Announcement sent")
             setText("")
             setPage(0)
-            loadMessages(0)
+            loadAnnouncements(0)
         } catch (e) {
-            console.error("Failed to send message", e)
-            toast.error("Failed to send message")
+            console.error("Failed to send announcement", e)
+            toast.error("Failed to send announcement")
         } finally {
             setSending(false)
         }
     }
 
-    const isEmpty = messages.length === 0
+    const isEmpty = announcements.length === 0
     const rangeStart = totalElements === 0 ? 0 : page * pageSize + 1
     const rangeEnd = Math.min(totalElements, (page + 1) * pageSize)
 
@@ -115,10 +115,10 @@ export function MessagePanel() {
                 <div className="px-6 pt-6 pb-5 border-b border-slate-200">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-                            <MessageSquare className="w-5 h-5" />
+                            <Megaphone className="w-5 h-5" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-tight">New Message</h2>
+                            <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-tight">New Announcement</h2>
                             <p className="text-xs text-slate-400">Broadcast to parents or students</p>
                         </div>
                     </div>
@@ -156,12 +156,12 @@ export function MessagePanel() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Message</label>
+                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Announcement</label>
                         <textarea
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             rows={7}
-                            placeholder="Type your message..."
+                            placeholder="Type your announcement..."
                             className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
                         />
                         <p className="text-[11px] text-slate-400 text-right">{text.length} characters</p>
@@ -175,7 +175,7 @@ export function MessagePanel() {
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                        {sending ? "Sending..." : "Send Message"}
+                        {sending ? "Sending..." : "Send Announcement"}
                     </button>
                 </div>
             </div>
@@ -184,11 +184,11 @@ export function MessagePanel() {
             <div className="flex-1 min-w-0 flex flex-col">
                 <div className="shrink-0 px-6 pt-6 pb-5 border-b border-slate-200 bg-white flex items-center justify-between">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-tight">Sent Messages</h2>
+                        <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-tight">Sent Announcements</h2>
                         <p className="text-xs text-slate-400">{totalElements.toLocaleString()} total</p>
                     </div>
                     <button
-                        onClick={() => loadMessages(page)}
+                        onClick={() => loadAnnouncements(page)}
                         className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-600 shadow-sm"
                         title="Refresh"
                     >
@@ -200,14 +200,14 @@ export function MessagePanel() {
                     {loading && isEmpty ? (
                         <div className="flex flex-col items-center justify-center h-40 gap-3 text-slate-400">
                             <RefreshCw size={24} className="animate-spin text-blue-500" />
-                            <p className="text-sm font-medium">Loading messages...</p>
+                            <p className="text-sm font-medium">Loading announcements...</p>
                         </div>
                     ) : isEmpty ? (
                         <div className="flex flex-col items-center justify-center h-40 gap-3 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
                             <div className="p-3 bg-slate-50 rounded-full">
-                                <MessageSquare size={24} className="text-slate-400" />
+                                <Megaphone size={24} className="text-slate-400" />
                             </div>
-                            <p className="text-sm font-medium">No messages sent yet</p>
+                            <p className="text-sm font-medium">No announcements sent yet</p>
                         </div>
                     ) : (
                         <div className="flex-1 min-h-0 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -218,10 +218,10 @@ export function MessagePanel() {
                                 <div className="px-4 py-3 font-semibold">Time</div>
                                 <div className="px-4 py-3 font-semibold">Vehicle</div>
                                 <div className="px-4 py-3 font-semibold">Recipients</div>
-                                <div className="px-4 py-3 font-semibold">Message</div>
+                                <div className="px-4 py-3 font-semibold">Announcement</div>
                             </div>
                             <div className="flex-1 min-h-0 overflow-y-auto">
-                                {messages.map((m, idx) => (
+                                {announcements.map((m, idx) => (
                                     <div
                                         key={m.id}
                                         className={`grid border-b border-slate-100 last:border-0 hover:bg-blue-50/40 transition-colors ${idx % 2 === 1 ? "bg-slate-50/50" : ""}`}
@@ -267,9 +267,9 @@ export function MessagePanel() {
                             )}
                         </p>
                         <div className="flex items-center gap-1.5">
-                            <label htmlFor="message-page-size" className="text-xs text-slate-400">Rows</label>
+                            <label htmlFor="announcement-page-size" className="text-xs text-slate-400">Rows</label>
                             <select
-                                id="message-page-size"
+                                id="announcement-page-size"
                                 value={pageSize}
                                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                                 className="text-xs border border-slate-200 rounded-lg pl-2 pr-6 py-1 text-slate-600 bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30"

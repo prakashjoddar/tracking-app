@@ -13,7 +13,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
     { name: "Vehicle Details", url: "/vehicle", menuKey: "VEHICLE_DETAILS" },
     { name: "Vehicle Groups", url: "/vehicle-group", menuKey: "VEHICLE_GROUPS" },
     { name: "Alerts", url: "/alert", menuKey: "ALERTS" },
-    { name: "Messages", url: "/message", menuKey: "MESSAGES" },
+    { name: "Announcements", url: "/announcement", menuKey: "ANNOUNCEMENTS" },
     { name: "Reports", url: "/report", menuKey: "REPORTS" },
     { name: "Geo Fence", url: "/geofence", menuKey: "GEOFENCE" },
     { name: "Alert Settings", url: "/alert-config", menuKey: "ALERT_SETTINGS" },

@@ -34,7 +34,7 @@ import { AiTwotoneCar } from "react-icons/ai";
 import { BsFillGeoFill } from "react-icons/bs";
 import { FaUsersCog } from "react-icons/fa";
 import { ImStatsDots } from "react-icons/im";
-import { MdOutlineMessage } from "react-icons/md";
+import { MdCampaign } from "react-icons/md";
 import { RiDashboardLine, RiParentLine, RiRoadMapLine } from "react-icons/ri";
 import { getCurrentUserType } from "@/lib/utils";
 import { useCurrentUserStore } from "@/store/current-user-store";
@@ -142,15 +142,15 @@ export function NavMain({
       menuKey: "ALERTS",
     },
     {
-      name: "Messages",
+      name: "Announcements",
       icon: (
-        <MdOutlineMessage
+        <MdCampaign
           className="size-4 mr-1"
           style={{ color: menuColors[4] }}
         />
       ),
-      url: "/message",
-      menuKey: "MESSAGES",
+      url: "/announcement",
+      menuKey: "ANNOUNCEMENTS",
     },
     {
       name: "Reports",
