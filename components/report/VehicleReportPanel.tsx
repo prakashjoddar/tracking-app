@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { ReportFilters } from "./ReportFilters"
 import { ReportPagination } from "./ReportPagination"
 
-const COLS = "110px 140px 120px 110px 100px 110px 120px 120px 110px"
+const COLS = "110px 140px 120px 110px 100px 100px 110px 120px 120px 110px"
 const DEFAULT_PAGE_SIZE = 25
 
 function formatHrMin(minutes: number): string {
@@ -20,7 +20,7 @@ function formatHrMin(minutes: number): string {
 
 const CSV_HEADERS = [
     "Date", "Vehicle Number", "Distance Travelled (Km)", "Running Time (Hr:Min)",
-    "Idle Time (Hr:Min)", "Parked Time (Hr:Min)", "Over Speed Percent", "Max Speed (Km/hr)", "Speed Limit (Km/hr)",
+    "Idle Time (Hr:Min)", "Stopped Time (Hr:Min)", "Parked Time (Hr:Min)", "Over Speed Percent", "Max Speed (Km/hr)", "Speed Limit (Km/hr)",
 ]
 
 function csvEscape(value: string): string {
@@ -32,7 +32,7 @@ function toCsv(rows: VehicleReportEntry[]): string {
     for (const e of rows) {
         lines.push([
             e.date, e.vehicleNo, e.distanceKm.toFixed(1), formatHrMin(e.runningMinutes),
-            formatHrMin(e.idleMinutes), formatHrMin(e.parkedMinutes), `${e.overSpeedPercent.toFixed(1)}%`,
+            formatHrMin(e.idleMinutes), formatHrMin(e.stoppedMinutes), formatHrMin(e.parkedMinutes), `${e.overSpeedPercent.toFixed(1)}%`,
             e.maxSpeedKmh.toFixed(0), e.speedLimitKmh.toFixed(0),
         ].map((v) => csvEscape(String(v))).join(","))
     }
@@ -123,7 +123,7 @@ export function VehicleReportPanel() {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-tight">Vehicle Report</h2>
-                            <p className="text-xs text-slate-400">Daily distance, running/idle/parked time, and speed per vehicle</p>
+                            <p className="text-xs text-slate-400">Daily distance, running/idle/stopped/parked time, and speed per vehicle</p>
                         </div>
                     </div>
                     {hasRun && (
@@ -168,13 +168,14 @@ export function VehicleReportPanel() {
                     </div>
                 ) : (
                     <div className="flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-auto">
-                        <div className="min-w-[1040px]">
+                        <div className="min-w-[1130px]">
                             <div className="grid sticky top-0 z-10 border-b border-slate-200 bg-slate-50/80 text-left text-[11px] uppercase tracking-wide text-slate-400" style={{ gridTemplateColumns: COLS }}>
                                 <div className="px-3 py-3 font-semibold">Date</div>
                                 <div className="px-3 py-3 font-semibold">Vehicle</div>
                                 <div className="px-3 py-3 font-semibold">Distance</div>
                                 <div className="px-3 py-3 font-semibold">Running</div>
                                 <div className="px-3 py-3 font-semibold">Idle</div>
+                                <div className="px-3 py-3 font-semibold">Stopped</div>
                                 <div className="px-3 py-3 font-semibold">Parked</div>
                                 <div className="px-3 py-3 font-semibold">Over Speed %</div>
                                 <div className="px-3 py-3 font-semibold">Max Speed</div>
@@ -193,6 +194,7 @@ export function VehicleReportPanel() {
                                     <div className="px-3 py-3 text-slate-700 text-sm self-center">{e.distanceKm.toFixed(1)} Km</div>
                                     <div className="px-3 py-3 text-slate-700 text-sm self-center">{formatHrMin(e.runningMinutes)}</div>
                                     <div className="px-3 py-3 text-slate-700 text-sm self-center">{formatHrMin(e.idleMinutes)}</div>
+                                    <div className="px-3 py-3 text-slate-700 text-sm self-center">{formatHrMin(e.stoppedMinutes)}</div>
                                     <div className="px-3 py-3 text-slate-700 text-sm self-center">{formatHrMin(e.parkedMinutes)}</div>
                                     <div className="px-3 py-3 self-center">
                                         <span className={`text-xs font-semibold ${e.overSpeedPercent > 0 ? "text-red-600" : "text-slate-400"}`}>

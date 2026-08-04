@@ -386,6 +386,10 @@ export type VehicleReportEntry = {
   distanceKm: number;
   runningMinutes: number;
   idleMinutes: number;
+  // Ignition-off time is split by how long each continuous off-episode lasted: under 5 minutes
+  // counts as stoppedMinutes (a brief halt), 5 minutes or more counts as parkedMinutes (an
+  // extended stay) — see gps_api's GpsDataRepository.findVehicleReport for the exact grouping.
+  stoppedMinutes: number;
   parkedMinutes: number;
   overSpeedPercent: number;
   maxSpeedKmh: number;
