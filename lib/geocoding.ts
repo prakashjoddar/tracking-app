@@ -1,3 +1,5 @@
+import { api } from "@/lib/api";
+
 export type PlaceSuggestion = {
     id: string;
     mainText: string;
@@ -43,26 +45,22 @@ async function resolveGoogle(suggestion: PlaceSuggestion): Promise<ResolvedPlace
 }
 
 /**
- * Nominatim's public endpoint — free, no API key, but its usage policy caps
- * autocomplete-on-keystroke volume for production use without self-hosting.
- * Fine for low-volume orgs; self-host Nominatim/Photon if this becomes heavy traffic.
+ * Proxied through gps_api (see PlaceSearchController/PlaceSearchService) rather than calling
+ * Nominatim directly from the browser — that keeps Nominatim's 1-request/second usage policy
+ * enforced in one shared place (the same limiter reverse geocoding uses) instead of every client
+ * hitting it independently and uncontrolled.
  */
 async function searchOsm(query: string): Promise<PlaceSuggestion[]> {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&addressdetails=0&limit=6`;
-    const res = await fetch(url, { headers: { "Accept-Language": "en" } });
-    if (!res.ok) return [];
+    const res = await api.get<Array<{ id: string; mainText: string; secondaryText: string; latitude: number; longitude: number }>>(
+        "/place-search/autocomplete", { params: { query, provider: "OSM" } });
 
-    const data: Array<{ place_id: number; display_name: string; lat: string; lon: string }> = await res.json();
-    return data.map((item) => {
-        const [mainText, ...rest] = item.display_name.split(",");
-        return {
-            id: String(item.place_id),
-            mainText: mainText.trim(),
-            secondaryText: rest.join(",").trim(),
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-        };
-    });
+    return res.data.map((item) => ({
+        id: item.id,
+        mainText: item.mainText,
+        secondaryText: item.secondaryText,
+        lat: item.latitude,
+        lng: item.longitude,
+    }));
 }
 
 /** Encapsulates a single search session (Google's session-token billing lifecycle, or plain OSM lookups). */
