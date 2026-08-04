@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import dayjs, { type Dayjs } from "dayjs"
 import { DatePicker } from "antd"
 import { fetchTimelineReport } from "@/lib/api"
@@ -19,6 +19,34 @@ function formatDuration(seconds: number | null): string {
     const minutes = Math.round(seconds / 60)
     if (minutes < 60) return `${minutes}min`
     return `${Math.floor(minutes / 60)}h ${minutes % 60}min`
+}
+
+function formatDurationSum(totalSeconds: number): string {
+    const minutes = Math.round(totalSeconds / 60)
+    if (minutes < 60) return `${minutes}min`
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}min`
+}
+
+function StatCard({
+    icon,
+    label,
+    value,
+    accent,
+}: {
+    icon: ReactNode
+    label: string
+    value: string
+    accent: string
+}) {
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3.5 flex items-center gap-3">
+            <div className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 ${accent}`}>{icon}</div>
+            <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate">{label}</p>
+                <p className="text-base font-bold text-slate-800 leading-tight truncate">{value}</p>
+            </div>
+        </div>
+    )
 }
 
 export function TimelineReportPanel() {
@@ -65,6 +93,23 @@ export function TimelineReportPanel() {
         if (selectedVehicle) load()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedVehicle?.number, date])
+
+    const stats = useMemo(() => {
+        const stops = segments.filter((s) => s.type === "STOP")
+        const trips = segments.filter((s) => s.type === "TRIP")
+        const totalStopSeconds = stops.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
+        const totalTripSeconds = trips.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
+        const avgSpeeds = trips.map((s) => s.avgSpeedKmh).filter((v): v is number => v != null)
+        const maxSpeeds = trips.map((s) => s.maxSpeedKmh).filter((v): v is number => v != null)
+        return {
+            totalStops: stops.length,
+            totalTrips: trips.length,
+            totalStopSeconds,
+            totalTripSeconds,
+            avgSpeedKmh: avgSpeeds.length ? avgSpeeds.reduce((a, b) => a + b, 0) / avgSpeeds.length : null,
+            maxSpeedKmh: maxSpeeds.length ? Math.max(...maxSpeeds) : null,
+        }
+    }, [segments])
 
     return (
         <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-slate-100/60">
@@ -120,8 +165,48 @@ export function TimelineReportPanel() {
                         <p className="text-sm font-medium">No activity recorded for this day</p>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-3 max-w-2xl">
-                        {segments.map((seg, idx) => (
+                    <div className="flex gap-5 h-full items-start">
+                        <div className="w-72 shrink-0 grid grid-cols-2 gap-3 sticky top-0">
+                            <StatCard
+                                icon={<MapPin size={17} className="text-red-600" />}
+                                label="Total Stops"
+                                value={String(stats.totalStops)}
+                                accent="bg-red-50"
+                            />
+                            <StatCard
+                                icon={<RouteIcon size={17} className="text-green-600" />}
+                                label="Total Trips"
+                                value={String(stats.totalTrips)}
+                                accent="bg-green-50"
+                            />
+                            <StatCard
+                                icon={<Clock size={17} className="text-red-600" />}
+                                label="Total Stop Time"
+                                value={formatDurationSum(stats.totalStopSeconds)}
+                                accent="bg-red-50"
+                            />
+                            <StatCard
+                                icon={<Clock size={17} className="text-green-600" />}
+                                label="Total Trip Time"
+                                value={formatDurationSum(stats.totalTripSeconds)}
+                                accent="bg-green-50"
+                            />
+                            <StatCard
+                                icon={<Gauge size={17} className="text-blue-600" />}
+                                label="Avg Speed"
+                                value={stats.avgSpeedKmh != null ? `${Math.round(stats.avgSpeedKmh)} Kmph` : "—"}
+                                accent="bg-blue-50"
+                            />
+                            <StatCard
+                                icon={<Zap size={17} className="text-blue-600" />}
+                                label="Max Speed"
+                                value={stats.maxSpeedKmh != null ? `${Math.round(stats.maxSpeedKmh)} Kmph` : "—"}
+                                accent="bg-blue-50"
+                            />
+                        </div>
+
+                        <div className="flex-1 min-w-0 flex flex-col gap-3">
+                            {segments.map((seg, idx) => (
                             <div
                                 key={idx}
                                 className={`bg-white rounded-2xl border shadow-sm px-5 py-4 border-l-4 ${seg.type === "STOP" ? "border-l-red-400" : "border-l-green-400"
@@ -196,7 +281,8 @@ export function TimelineReportPanel() {
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
