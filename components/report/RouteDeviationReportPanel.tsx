@@ -3,51 +3,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import dayjs, { type Dayjs } from "dayjs"
 import { DatePicker } from "antd"
-import { GoogleMap, useLoadScript, Polyline, Circle } from "@react-google-maps/api"
 import { fetchTrips, fetchTripReport, fetchVehicleLocationHistory } from "@/lib/api"
+import { decodeEncodedPolyline } from "@/lib/polyline-decode"
+import { haversineMeters, nearestDistanceMeters } from "@/lib/geo"
 import { Trip, TripReportEntry, VehicleHistoryPoint } from "@/lib/types"
 import { Navigation, RefreshCw, Gauge, Bus, Route as RouteIcon, Search } from "lucide-react"
 import { toast } from "sonner"
 import { useVehicleManageStore } from "@/store/vehicle-store"
+import { useCurrentUserStore } from "@/store/current-user-store"
 import { SearchableSelect } from "@/components/ui/searchable-select"
+import { RouteDeviationMapEngine } from "./RouteDeviationMapEngine"
 
 const DEFAULT_THRESHOLD_M = 100
 
-// Must be a stable reference — a new array literal on every render makes
-// useLoadScript think the requested libraries changed and reload the script.
-const MAP_LIBRARIES: "geometry"[] = ["geometry"]
-
-function closestPointOnSegment(
-    p: google.maps.LatLng, a: google.maps.LatLng, b: google.maps.LatLng
-): google.maps.LatLng {
-    const ax = a.lng(), ay = a.lat()
-    const bx = b.lng(), by = b.lat()
-    const px = p.lng(), py = p.lat()
-    const dx = bx - ax, dy = by - ay
-    const lenSq = dx * dx + dy * dy
-    if (lenSq === 0) return a
-    let t = ((px - ax) * dx + (py - ay) * dy) / lenSq
-    t = Math.max(0, Math.min(1, t))
-    return new google.maps.LatLng(ay + t * dy, ax + t * dx)
-}
-
-function nearestDistanceMeters(point: google.maps.LatLng, path: google.maps.LatLng[]): number {
-    if (path.length === 0) return Infinity
-    if (path.length === 1) return google.maps.geometry.spherical.computeDistanceBetween(point, path[0])
-    let minDist = Infinity
-    for (let i = 0; i < path.length - 1; i++) {
-        const snapped = closestPointOnSegment(point, path[i], path[i + 1])
-        const dist = google.maps.geometry.spherical.computeDistanceBetween(point, snapped)
-        if (dist < minDist) minDist = dist
-    }
-    return minDist
-}
-
 export function RouteDeviationReportPanel() {
-    const { isLoaded } = useLoadScript({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY!,
-        libraries: MAP_LIBRARIES,
-    })
+    const mapProvider = useCurrentUserStore((s) => s.user?.mapProvider) === "MAPLIBRE" ? "maplibre" : "google"
+    const fetchCurrentUserOnce = useCurrentUserStore((s) => s.fetchCurrentUserOnce)
+    useEffect(() => { fetchCurrentUserOnce() }, [fetchCurrentUserOnce])
 
     const vehicles = useVehicleManageStore((s) => s.vehicles)
     const fetchVehicles = useVehicleManageStore((s) => s.fetchVehicles)
@@ -67,12 +39,6 @@ export function RouteDeviationReportPanel() {
     const [loading, setLoading] = useState(false)
     const [hasRun, setHasRun] = useState(false)
     const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD_M)
-
-    // Tracked as state (not a plain ref) so the fitBounds effect below is
-    // guaranteed to re-run once the map actually becomes available — GoogleMap's
-    // onLoad can fire after this component's effects have already committed,
-    // and a ref mutation alone wouldn't schedule a re-run.
-    const [map, setMap] = useState<google.maps.Map | null>(null)
 
     const selectedVehicle = vehicles.find((v) => v.id === vehicleId)
     const selectedTrip = trips.find((t) => t.id === tripId)
@@ -184,17 +150,17 @@ export function RouteDeviationReportPanel() {
     }
 
     const { plannedPath, actualPath, deviatedIndices, summary } = useMemo(() => {
-        if (!isLoaded || !selectedTrip?.waypoint || actualPoints.length === 0) {
+        if (!selectedTrip?.waypoint || actualPoints.length === 0) {
             return {
-                plannedPath: [] as google.maps.LatLng[],
-                actualPath: [] as google.maps.LatLng[],
+                plannedPath: [] as [number, number][],
+                actualPath: [] as [number, number][],
                 deviatedIndices: new Set<number>(),
                 summary: null as null | { totalDistanceKm: number; maxDeviationM: number; percentDeviated: number; events: number },
             }
         }
 
-        const planned = google.maps.geometry.encoding.decodePath(selectedTrip.waypoint)
-        const actual = actualPoints.map((p) => new google.maps.LatLng(p.latitude, p.longitude))
+        const planned = decodeEncodedPolyline(selectedTrip.waypoint)
+        const actual: [number, number][] = actualPoints.map((p) => [p.longitude, p.latitude])
 
         let totalDistanceM = 0
         let maxDeviationM = 0
@@ -203,7 +169,7 @@ export function RouteDeviationReportPanel() {
         let inEvent = false
 
         actual.forEach((pt, idx) => {
-            if (idx > 0) totalDistanceM += google.maps.geometry.spherical.computeDistanceBetween(actual[idx - 1], pt)
+            if (idx > 0) totalDistanceM += haversineMeters(actual[idx - 1][1], actual[idx - 1][0], pt[1], pt[0])
             const dist = planned.length > 0 ? nearestDistanceMeters(pt, planned) : 0
             if (dist > maxDeviationM) maxDeviationM = dist
             if (dist > threshold) {
@@ -225,17 +191,7 @@ export function RouteDeviationReportPanel() {
                 events,
             },
         }
-    }, [isLoaded, selectedTrip?.waypoint, actualPoints, threshold])
-
-    const onMapLoad = useCallback((m: google.maps.Map) => { setMap(m) }, [])
-
-    useEffect(() => {
-        if (!map || (plannedPath.length === 0 && actualPath.length === 0)) return
-        const bounds = new google.maps.LatLngBounds()
-        plannedPath.forEach((p) => bounds.extend(p))
-        actualPath.forEach((p) => bounds.extend(p))
-        map.fitBounds(bounds, 60)
-    }, [map, plannedPath, actualPath])
+    }, [selectedTrip?.waypoint, actualPoints, threshold])
 
     const needsRunPick = hasRun && runs.length > 1 && runId === null
     const noWaypoint = hasRun && !!selectedTrip && !selectedTrip.waypoint && runs.length > 0
@@ -370,31 +326,12 @@ export function RouteDeviationReportPanel() {
                         )}
 
                         <div className="flex-1 min-h-0 rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                            {!isLoaded ? (
-                                <div className="h-full flex items-center justify-center text-slate-400 text-sm">Loading map...</div>
-                            ) : (
-                                <GoogleMap
-                                    onLoad={onMapLoad}
-                                    mapContainerStyle={{ width: "100%", height: "100%" }}
-                                    center={{ lat: actualPath[0]?.lat() ?? 0, lng: actualPath[0]?.lng() ?? 0 }}
-                                    zoom={13}
-                                >
-                                    {plannedPath.length > 0 && (
-                                        <Polyline path={plannedPath} options={{ strokeColor: "#2563eb", strokeWeight: 4 }} />
-                                    )}
-                                    {actualPath.length > 0 && (
-                                        <Polyline path={actualPath} options={{ strokeColor: "#f59e0b", strokeWeight: 3 }} />
-                                    )}
-                                    {actualPath.map((p, idx) => deviatedIndices.has(idx) && (
-                                        <Circle
-                                            key={idx}
-                                            center={{ lat: p.lat(), lng: p.lng() }}
-                                            radius={12}
-                                            options={{ fillColor: "#dc2626", fillOpacity: 0.9, strokeColor: "#dc2626", strokeWeight: 0 }}
-                                        />
-                                    ))}
-                                </GoogleMap>
-                            )}
+                            <RouteDeviationMapEngine
+                                provider={mapProvider}
+                                plannedPath={plannedPath}
+                                actualPath={actualPath}
+                                deviatedIndices={deviatedIndices}
+                            />
                         </div>
                     </>
                 )}
