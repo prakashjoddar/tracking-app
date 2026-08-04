@@ -194,7 +194,7 @@ export class VehicleMarkerManager {
         const vehicleNoEl = root.querySelector<HTMLElement>(".vehicle-no");
         const statusEl = root.querySelector<HTMLElement>(".vehicle-status");
         const ignitionEl = root.querySelector<HTMLElement>(".ignition");
-        if (labelEl) labelEl.textContent = vehicle.vehicleNo.slice(-4);
+        if (labelEl) labelEl.textContent = vehicle.label || vehicle.vehicleNo;
         if (vehicleNoEl) vehicleNoEl.textContent = vehicle.vehicleNo;
         if (statusEl) statusEl.textContent = vehicle.status;
         if (ignitionEl) ignitionEl.textContent = vehicle.ignition ? "ON" : "OFF";
