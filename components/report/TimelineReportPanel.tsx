@@ -99,14 +99,18 @@ export function TimelineReportPanel() {
         const trips = segments.filter((s) => s.type === "TRIP")
         const totalStopSeconds = stops.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
         const totalTripSeconds = trips.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
-        const avgSpeeds = trips.map((s) => s.avgSpeedKmh).filter((v): v is number => v != null)
+        // Distance/time-weighted, matching GpsDataRepository.findTripDistanceSpeed's convention —
+        // a plain average of each trip's avgSpeedKmh lets one short, GPS-glitched trip (huge
+        // distance over a near-zero time delta) dominate the figure.
+        const totalTripDistanceKm = trips.reduce((sum, s) => sum + (s.distanceKm ?? 0), 0)
+        const totalTripSecondsForSpeed = trips.reduce((sum, s) => sum + (s.distanceKm != null ? (s.durationSeconds ?? 0) : 0), 0)
         const maxSpeeds = trips.map((s) => s.maxSpeedKmh).filter((v): v is number => v != null)
         return {
             totalStops: stops.length,
             totalTrips: trips.length,
             totalStopSeconds,
             totalTripSeconds,
-            avgSpeedKmh: avgSpeeds.length ? avgSpeeds.reduce((a, b) => a + b, 0) / avgSpeeds.length : null,
+            avgSpeedKmh: totalTripSecondsForSpeed > 0 ? totalTripDistanceKm / (totalTripSecondsForSpeed / 3600) : null,
             maxSpeedKmh: maxSpeeds.length ? Math.max(...maxSpeeds) : null,
         }
     }, [segments])
