@@ -39,11 +39,11 @@ function StatCard({
     accent: string
 }) {
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3.5 flex items-center gap-3">
-            <div className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 ${accent}`}>{icon}</div>
-            <div className="min-w-0">
+        <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-4 flex items-center gap-3">
+            <div className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${accent}`}>{icon}</div>
+            <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate">{label}</p>
-                <p className="text-base font-bold text-slate-800 leading-tight truncate">{value}</p>
+                <p className="text-lg font-bold text-slate-800 leading-tight truncate">{value}</p>
             </div>
         </div>
     )
@@ -166,7 +166,7 @@ export function TimelineReportPanel() {
                     </div>
                 ) : (
                     <div className="flex gap-5 h-full items-start">
-                        <div className="w-72 shrink-0 grid grid-cols-2 gap-3 sticky top-0">
+                        <div className="w-72 shrink-0 flex flex-col gap-3 sticky top-0">
                             <StatCard
                                 icon={<MapPin size={17} className="text-red-600" />}
                                 label="Total Stops"
