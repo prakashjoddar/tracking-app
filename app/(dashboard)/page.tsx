@@ -36,7 +36,7 @@ function RankList({ title, icon, entries, unit }: { title: string; icon: React.R
             ) : (
                 <div className="space-y-2">
                     {entries.map((e, idx) => (
-                        <div key={e.vehicleNo} className="flex items-center justify-between text-sm">
+                        <div key={`${e.vehicleNo}-${idx}`} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2 min-w-0">
                                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">{idx + 1}</span>
                                 <span className="font-mono text-xs font-medium text-slate-700 truncate">{e.vehicleNo}</span>
@@ -157,9 +157,9 @@ export default function DashboardPage() {
                     {liveVehicles.length === 0 ? (
                         <p className="text-sm text-slate-400">No vehicles currently running</p>
                     ) : (
-                        liveVehicles.map((v) => (
+                        liveVehicles.map((v, idx) => (
                             <button
-                                key={v.vehicleNo}
+                                key={`${v.vehicleNo}-${idx}`}
                                 onClick={() => setSelectedVehicleNo(v.vehicleNo)}
                                 className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${selectedVehicleNo === v.vehicleNo ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}
                             >

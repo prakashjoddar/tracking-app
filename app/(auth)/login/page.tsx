@@ -111,12 +111,16 @@ export default function LoginPage() {
                 </button>
             </form>
 
+            {/* Org provisioning is SUPER-only (see AuthController#register) — there's no public
+            self-serve signup, so this link is disabled rather than pointing to a page that would
+            always 403 for an anonymous visitor. Re-enable if self-serve signup is ever added.
             <p className="text-center text-sm text-slate-400">
                 Don't have an account?{" "}
                 <Link href="/register" className="text-blue-500 hover:text-blue-400 font-medium transition-colors">
                     Create one now
                 </Link>
             </p>
+            */}
         </div>
     )
 }

@@ -1,13 +1,30 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+
+// Org provisioning is SUPER-only (see AuthController#register — "there is no self-serve org
+// creation in this product"). This page used to be a public signup form, but it would always 403
+// for an anonymous visitor since the backend requires a SUPER session. Disabled below; the
+// original implementation is kept commented out in case self-serve signup is ever reintroduced.
+export default function RegisterPage() {
+    const router = useRouter()
+
+    useEffect(() => {
+        router.replace("/login")
+    }, [router])
+
+    return null
+}
+
+/*
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, Phone, MapPin } from "lucide-react"
 import { registerAction } from "@/lib/auth-actions"
 import { toast } from "sonner"
 
-export default function RegisterPage() {
+function RegisterPageOriginal() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
@@ -70,7 +87,6 @@ export default function RegisterPage() {
                 )}
 
                 <div className="space-y-4">
-                    {/* Name */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">First Name <span className="text-red-400">*</span></label>
@@ -88,7 +104,6 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
-                    {/* Email */}
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-300">Email address <span className="text-red-400">*</span></label>
                         <div className="relative group">
@@ -97,7 +112,6 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
-                    {/* Mobile & Username */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">Mobile Number</label>
@@ -115,7 +129,6 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
-                    {/* Address */}
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-300">Address</label>
                         <div className="relative group">
@@ -124,7 +137,6 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
-                    {/* Password */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">Password <span className="text-red-400">*</span></label>
@@ -191,3 +203,4 @@ export default function RegisterPage() {
         </div>
     )
 }
+*/
