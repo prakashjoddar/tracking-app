@@ -62,7 +62,7 @@ export function MapLibreView() {
   const pathname = usePathname();
   const { resolvedTheme } = useTheme();
 
-  const isDashboardPage = pathname === "/";
+  const isLiveFleetPage = pathname === "/live-fleet";
   const isGeofencePage = pathname === "/geofence";
   const isStopsPage = pathname === "/trip/stop";
   const isTripPage = pathname.startsWith("/trip");
@@ -149,7 +149,7 @@ export function MapLibreView() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!isDashboardPage) {
+      if (!isLiveFleetPage) {
         markerManagerRef.current?.updateVehicles([]);
         return;
       }
@@ -161,7 +161,7 @@ export function MapLibreView() {
     }, 800);
 
     return () => clearInterval(interval);
-  }, [isDashboardPage, hideOtherVehicles, selectedLocationId]);
+  }, [isLiveFleetPage, hideOtherVehicles, selectedLocationId]);
 
   useEffect(() => {
     if (mapReady) fitAllVehicles();
@@ -182,17 +182,17 @@ export function MapLibreView() {
   }, [selectedLocationId]);
 
   // ── Dashboard: active trip route ────────────────────────────────
-  const activeTrip = useActiveTrip(isDashboardPage ? selectedLocationId : null);
+  const activeTrip = useActiveTrip(isLiveFleetPage ? selectedLocationId : null);
   const activeTripWaypoint = activeTrip?.waypoint ?? null;
 
   useEffect(() => {
-    if (!isDashboardPage || !mapReady || !routeManagerRef.current) return;
+    if (!isLiveFleetPage || !mapReady || !routeManagerRef.current) return;
     if (activeTripWaypoint) {
       routeManagerRef.current.drawEncodedRoute(activeTripWaypoint);
     } else {
       routeManagerRef.current.clearRoute();
     }
-  }, [activeTripWaypoint, mapReady, isDashboardPage]);
+  }, [activeTripWaypoint, mapReady, isLiveFleetPage]);
 
   useFleetMapCameraMapLibre({
     map: mapRef.current,
@@ -222,12 +222,12 @@ export function MapLibreView() {
   const geofenceLocateRequestId = useGeofenceStore((s) => s.locateRequestId);
 
   // Sync geofences to map — on the geofence page, or the dashboard toggle.
-  const showGeofencesOnDashboard = isDashboardPage && !!selectedLocationId && showGeofences;
-  useOrgGeofences(showGeofencesOnDashboard);
+  const showGeofencesOnLiveFleet = isLiveFleetPage && !!selectedLocationId && showGeofences;
+  useOrgGeofences(showGeofencesOnLiveFleet);
 
   useEffect(() => {
     if (!geofenceMarkerManagerRef.current) return;
-    if (!isGeofencePage && !showGeofencesOnDashboard) {
+    if (!isGeofencePage && !showGeofencesOnLiveFleet) {
       geofenceMarkerManagerRef.current.clearAll();
       return;
     }
@@ -236,7 +236,7 @@ export function MapLibreView() {
     if (isGeofencePage && geofences.length > 0 && !geofenceEditingId) {
       geofenceMarkerManagerRef.current.fitToGeofences(geofences);
     }
-  }, [geofences, geofenceEditingId, mapReady, isGeofencePage, showGeofencesOnDashboard]);
+  }, [geofences, geofenceEditingId, mapReady, isGeofencePage, showGeofencesOnLiveFleet]);
 
   // Zoom in to the selected geofence so its circle is visible.
   useEffect(() => {
@@ -317,15 +317,15 @@ export function MapLibreView() {
   }, [focusStopRequestId]);
 
   // Dashboard trip stop pins (read-only, shown while a trip is active).
-  const tripStops = useTripStops(isDashboardPage ? (activeTrip?.tripId ?? null) : null);
+  const tripStops = useTripStops(isLiveFleetPage ? (activeTrip?.tripId ?? null) : null);
   useEffect(() => {
-    if (!isDashboardPage || !mapReady || !stopMarkerManagerRef.current) return;
+    if (!isLiveFleetPage || !mapReady || !stopMarkerManagerRef.current) return;
     if (activeTripWaypoint && tripStops.length > 0) {
       stopMarkerManagerRef.current.syncTripStopMarkers(tripStops);
     } else {
       stopMarkerManagerRef.current.clearTripStopMarkers();
     }
-  }, [tripStops, activeTripWaypoint, mapReady, isDashboardPage]);
+  }, [tripStops, activeTripWaypoint, mapReady, isLiveFleetPage]);
 
   useEffect(() => {
     if (!isTripPage && routeManagerRef.current) {
@@ -452,7 +452,7 @@ export function MapLibreView() {
         )}
 
       <div className="absolute bottom-48 right-3 z-20 flex flex-col gap-2 items-end">
-        {isDashboardPage && selectedLocationId && (
+        {isLiveFleetPage && selectedLocationId && (
           <>
             <button
               onClick={() => setHideOtherVehicles((v) => !v)}

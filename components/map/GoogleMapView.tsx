@@ -71,7 +71,7 @@ export function GoogleMapView() {
   const setPendingLatLng = useTripStore((s) => s.setPendingLatLng);
   const setGeofencePendingLatLng = useGeofenceStore((s) => s.setPendingLatLng);
 
-  const isDashboardPage = pathname === "/";
+  const isLiveFleetPage = pathname === "/live-fleet";
   const isLocationHistoryPage = pathname === "/location-history";
   const isStopsPage = pathname === "/trip/stop";
   const isTripPage = pathname.startsWith("/trip");
@@ -147,7 +147,7 @@ export function GoogleMapView() {
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      if (!isDashboardPage) {
+      if (!isLiveFleetPage) {
         markerManagerRef.current?.updateVehicles([]);
         return;
       }
@@ -161,7 +161,7 @@ export function GoogleMapView() {
     }, 800);
 
     return () => clearInterval(interval);
-  }, [isDashboardPage, hideOtherVehicles, selectedLocationId]);
+  }, [isLiveFleetPage, hideOtherVehicles, selectedLocationId]);
 
   React.useEffect(() => {
     fitAllVehicles();
@@ -257,9 +257,9 @@ export function GoogleMapView() {
   const geofenceLocateRequestId = useGeofenceStore((s) => s.locateRequestId);
 
   // 5. Sync geofences to map — on the geofence page, or the dashboard toggle
-  const showGeofencesOnDashboard =
-    isDashboardPage && !!selectedLocationId && showGeofences;
-  useOrgGeofences(showGeofencesOnDashboard);
+  const showGeofencesOnLiveFleet =
+    isLiveFleetPage && !!selectedLocationId && showGeofences;
+  useOrgGeofences(showGeofencesOnLiveFleet);
 
   // Turn these toggles off (and drop them) whenever the vehicle is
   // deselected, so they don't silently stay "on" for the next vehicle you pick.
@@ -272,7 +272,7 @@ export function GoogleMapView() {
 
   useEffect(() => {
     if (!geofenceMarkerManagerRef.current) return;
-    if (!isGeofencePage && !showGeofencesOnDashboard) {
+    if (!isGeofencePage && !showGeofencesOnLiveFleet) {
       geofenceMarkerManagerRef.current.clearAll();
       return;
     }
@@ -291,7 +291,7 @@ export function GoogleMapView() {
     geofenceEditingId,
     mapReady,
     isGeofencePage,
-    showGeofencesOnDashboard,
+    showGeofencesOnLiveFleet,
   ]);
 
   // 5b. Zoom in to selected geofence so its circle is visible
@@ -359,31 +359,31 @@ export function GoogleMapView() {
 
   // Dashboard: plot the selected vehicle's route + stops when its trip is
   // currently active — same waypoint/stops shown on /trip/stop, resolved via gps_api.
-  const activeTrip = useActiveTrip(isDashboardPage ? selectedLocationId : null);
+  const activeTrip = useActiveTrip(isLiveFleetPage ? selectedLocationId : null);
   const activeTripWaypoint = activeTrip?.waypoint ?? null;
   const tripStops = useTripStops(
-    isDashboardPage ? (activeTrip?.tripId ?? null) : null,
+    isLiveFleetPage ? (activeTrip?.tripId ?? null) : null,
   );
 
   useEffect(() => {
-    if (!isDashboardPage || !mapReady || !routeManagerRef.current) return;
+    if (!isLiveFleetPage || !mapReady || !routeManagerRef.current) return;
 
     if (activeTripWaypoint) {
       routeManagerRef.current.drawEncodedRoute(activeTripWaypoint);
     } else {
       routeManagerRef.current.clearRoute();
     }
-  }, [activeTripWaypoint, mapReady, isDashboardPage]);
+  }, [activeTripWaypoint, mapReady, isLiveFleetPage]);
 
   useEffect(() => {
-    if (!isDashboardPage || !mapReady || !stopMarkerManagerRef.current) return;
+    if (!isLiveFleetPage || !mapReady || !stopMarkerManagerRef.current) return;
 
     if (activeTripWaypoint && tripStops.length > 0) {
       stopMarkerManagerRef.current.syncTripStopMarkers(tripStops);
     } else {
       stopMarkerManagerRef.current.clearTripStopMarkers();
     }
-  }, [tripStops, activeTripWaypoint, mapReady, isDashboardPage]);
+  }, [tripStops, activeTripWaypoint, mapReady, isLiveFleetPage]);
 
   useFleetMapCamera({
     map: mapRef.current,
@@ -513,7 +513,7 @@ export function GoogleMapView() {
         )}
 
       <div className="absolute bottom-48 right-3 z-20 flex flex-col gap-2 items-end">
-        {isDashboardPage && selectedLocationId && (
+        {isLiveFleetPage && selectedLocationId && (
           <>
             <button
               onClick={() => setHideOtherVehicles((v) => !v)}

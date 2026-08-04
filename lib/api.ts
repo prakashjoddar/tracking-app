@@ -29,6 +29,7 @@ import {
   ChatMessageResponse,
   SendChatMessageRequest,
   TimelineSegment,
+  DashboardSummaryResponse,
 } from "./types";
 import axios from "axios";
 
@@ -162,6 +163,19 @@ export async function fetchVehicleLocations(
   const res = await api.get<VehicleLocation[]>("/location", {
     params: groupId ? { groupId } : undefined,
   });
+  return res.data;
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+export async function fetchDashboardSummary(): Promise<DashboardSummaryResponse> {
+  const res = await api.get<DashboardSummaryResponse>("/dashboard/summary");
+  return res.data;
+}
+
+/** Deliberately separate from fetchVehicleLocations — the server filters/sorts/truncates to
+ * `limit` rows before responding, so this stays cheap to poll every 30s from the dashboard widget. */
+export async function fetchTopRunningVehicles(limit = 3): Promise<VehicleLocation[]> {
+  const res = await api.get<VehicleLocation[]>("/dashboard/live-vehicles", { params: { limit } });
   return res.data;
 }
 

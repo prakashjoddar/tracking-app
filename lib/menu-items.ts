@@ -9,6 +9,7 @@ export type MenuItemDef = {
 /** Single source of truth for name/url/menuKey — shared by nav-main.tsx (icons live there) and MenuAccessGuard. */
 export const MENU_ITEMS: MenuItemDef[] = [
     { name: "Dashboard", url: "/", menuKey: "DASHBOARD" },
+    { name: "Live Fleet", url: "/live-fleet", menuKey: "LIVE_FLEET" },
     { name: "Location History", url: "/location-history", menuKey: "LOCATION_HISTORY" },
     { name: "Vehicle Details", url: "/vehicle", menuKey: "VEHICLE_DETAILS" },
     { name: "Vehicle Groups", url: "/vehicle-group", menuKey: "VEHICLE_GROUPS" },

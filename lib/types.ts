@@ -233,6 +233,7 @@ export type UserRequestResponse = {
 
 export type MenuKey =
   | "DASHBOARD"
+  | "LIVE_FLEET"
   | "LOCATION_HISTORY"
   | "VEHICLE_DETAILS"
   | "VEHICLE_GROUPS"
@@ -550,4 +551,25 @@ export type StopProposalContext = {
     latitude: number | null;
     longitude: number | null;
   }[];
+};
+
+/** `value` is a distanceKm for "top running vehicle" lists, a 0-100 performerScore for "top performer" lists. */
+export type VehicleRankEntry = {
+  vehicleNo: string;
+  value: number;
+};
+
+export type DashboardWindow = {
+  totalDistanceKm: number;
+  tripCompletionPct: number;
+  stopCompletionPct: number;
+  routeDeviationPct: number;
+  topPerformers: VehicleRankEntry[];
+  topRunningVehicles: VehicleRankEntry[];
+};
+
+/** GET /dashboard/summary — pre-aggregated nightly, never computed from raw GPS on request. */
+export type DashboardSummaryResponse = {
+  month: DashboardWindow;
+  yesterday: DashboardWindow;
 };

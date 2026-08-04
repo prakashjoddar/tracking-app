@@ -101,6 +101,17 @@ export function NavMain({
       menuKey: "DASHBOARD",
     },
     {
+      name: "Live Fleet",
+      icon: (
+        <MapIcon
+          className="size-4 mr-1"
+          style={{ color: menuColors[1] }}
+        />
+      ),
+      url: "/live-fleet",
+      menuKey: "LIVE_FLEET",
+    },
+    {
       name: "Location History",
       icon: (
         <Route
