@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { fetchPendingStopProposals, approveStopProposal, rejectStopProposal } from "@/lib/api"
 import { StopProposal } from "@/lib/types"
 import { StopProposalCard } from "./StopProposalCard"
-import { MapPin, RefreshCw } from "lucide-react"
+import { AlertTriangle, MapPin, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 type StopProposalPanelProps = {
@@ -16,14 +16,20 @@ type StopProposalPanelProps = {
 export function StopProposalPanel({ selectedProposalId, onSelectProposal }: StopProposalPanelProps) {
     const [proposals, setProposals] = useState<StopProposal[]>([])
     const [loading, setLoading] = useState(false)
+    // Separate from "proposals is empty" — an empty array is also what a genuinely-clean
+    // queue looks like, so a failed fetch must not render as "no requests pending" or an
+    // admin could go a whole day thinking the queue is empty when it just failed to load.
+    const [loadError, setLoadError] = useState(false)
 
     const load = useCallback(async () => {
         setLoading(true)
         try {
             setProposals(await fetchPendingStopProposals())
+            setLoadError(false)
         } catch (e) {
             console.error("Failed to fetch pending stop requests", e)
             toast.error("Failed to load stop requests")
+            setLoadError(true)
         } finally {
             setLoading(false)
         }
@@ -89,6 +95,19 @@ export function StopProposalPanel({ selectedProposalId, onSelectProposal }: Stop
                     <div className="flex flex-col items-center justify-center h-40 gap-3 text-slate-400">
                         <RefreshCw size={24} className="animate-spin text-blue-500" />
                         <p className="text-sm font-medium">Loading stop requests...</p>
+                    </div>
+                ) : loadError && proposals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-40 gap-3 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
+                        <div className="p-3 bg-red-50 rounded-full">
+                            <AlertTriangle size={24} className="text-red-400" />
+                        </div>
+                        <p className="text-sm font-medium">Could not load stop requests</p>
+                        <button
+                            onClick={load}
+                            className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
+                        >
+                            Retry
+                        </button>
                     </div>
                 ) : proposals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 gap-3 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">

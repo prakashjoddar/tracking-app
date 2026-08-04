@@ -28,6 +28,7 @@ import {
   ConversationSummary,
   ChatMessageResponse,
   SendChatMessageRequest,
+  TimelineSegment,
 } from "./types";
 import axios from "axios";
 
@@ -559,6 +560,18 @@ export async function fetchVehicleReplacementReport(
       params: { page, size, from, to, vehicleNo: vehicleNo || undefined },
     },
   );
+  return res.data;
+}
+
+/** One vehicle's day as alternating STOP/TRIP segments — not paginated, a day's worth of ignition
+ * transitions is naturally bounded. `date` is "YYYY-MM-DD". */
+export async function fetchTimelineReport(
+  vehicleNo: string,
+  date: string,
+): Promise<TimelineSegment[]> {
+  const res = await api.get<TimelineSegment[]>(`/report/timeline/${vehicleNo}`, {
+    params: { date },
+  });
   return res.data;
 }
 

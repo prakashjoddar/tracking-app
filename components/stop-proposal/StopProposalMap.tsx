@@ -9,7 +9,7 @@ import { decodeEncodedPolyline } from "@/lib/polyline-decode"
 import { StopProposal, Stop } from "@/lib/types"
 import { RouteManager } from "@/components/map/maplibre/RouteManager"
 import { StopMarkerManager } from "@/components/map/maplibre/StopMarkerManager"
-import { Loader2, MapPin } from "lucide-react"
+import { AlertTriangle, Loader2, MapPin } from "lucide-react"
 
 const MAP_STYLES = {
     light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
@@ -37,6 +37,7 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
     const proposedMarkerRef = useRef<maplibregl.Marker | null>(null)
     const [mapReady, setMapReady] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [loadError, setLoadError] = useState(false)
     const { resolvedTheme } = useTheme()
 
     useEffect(() => {
@@ -101,6 +102,7 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
 
         let cancelled = false
         setLoading(true)
+        setLoadError(false)
 
         fetchStopProposalContext(proposal.tripId)
             .then((context) => {
@@ -162,7 +164,9 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
                 }
             })
             .catch((e) => {
+                if (cancelled) return
                 console.error("Failed to load trip context for stop request map", e)
+                setLoadError(true)
             })
             .finally(() => {
                 if (!cancelled) setLoading(false)
@@ -189,6 +193,12 @@ export function StopProposalMap({ proposal }: StopProposalMapProps) {
             {loading && (
                 <div className="absolute top-4 left-4 flex items-center gap-2 rounded-lg bg-white shadow px-3 py-1.5 text-xs font-medium text-slate-600">
                     <Loader2 size={13} className="animate-spin" /> Loading route…
+                </div>
+            )}
+
+            {!loading && loadError && (
+                <div className="absolute top-4 left-4 flex items-center gap-2 rounded-lg bg-white shadow px-3 py-1.5 text-xs font-medium text-red-600">
+                    <AlertTriangle size={13} /> Could not load route/stops for this request
                 </div>
             )}
         </div>

@@ -125,12 +125,14 @@ export class VehicleMarkerManager {
         const root = document.createElement("div");
         root.style.willChange = "transform";
         root.style.pointerEvents = "auto";
+        // Static skeleton only — no vehicle data interpolated into innerHTML. vehicleNo/status/
+        // date are admin-entered free text, so building this via a template literal would let a
+        // vehicle number containing e.g. "<img onerror=...>" execute for every user viewing the
+        // map. Dynamic values are set via .textContent below instead.
         root.innerHTML = `
         <div class="vehicle-marker" style="position:relative;display:flex;flex-direction:column;align-items:center">
 
-          <div class="vehicle-label">
-            ${vehicle.vehicleNo.slice(-4)}
-          </div>
+          <div class="vehicle-label"></div>
 
           <div class="vehicle-tooltip" style="
             position:absolute;
@@ -149,17 +151,17 @@ export class VehicleMarkerManager {
           ">
 
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:600;font-size:13px;">${vehicle.vehicleNo}</span>
-              <span style="font-size:10px;background:#f3f4f6;padding:2px 6px;border-radius:6px;">${vehicle.status}</span>
+              <span class="vehicle-no" style="font-weight:600;font-size:13px;"></span>
+              <span class="vehicle-status" style="font-size:10px;background:#f3f4f6;padding:2px 6px;border-radius:6px;"></span>
             </div>
 
             <div style="font-size:12px;color:#374151;line-height:1.4">
-              <div>Speed: <span class="speed">${vehicle.speed ?? 0}</span> km/h</div>
-              <div>Ignition: ${vehicle.ignition ? "ON" : "OFF"}</div>
-              <div>Signal: <span class="signal">${vehicle.signalStrength ?? 0}</span>%</div>
-              <div>Satellites: <span class="sat">${vehicle.noOfSatellites ?? 0}</span></div>
+              <div>Speed: <span class="speed"></span> km/h</div>
+              <div>Ignition: <span class="ignition"></span></div>
+              <div>Signal: <span class="signal"></span>%</div>
+              <div>Satellites: <span class="sat"></span></div>
               <div style="margin-top:4px;font-size:11px;color:#6b7280">
-                <div class="time">${vehicle.date} ${formatTime(vehicle.time)}</div>
+                <div class="time"></div>
               </div>
             </div>
 
@@ -187,6 +189,15 @@ export class VehicleMarkerManager {
         const signalEl = root.querySelector<HTMLElement>(".signal");
         const satelliteEl = root.querySelector<HTMLElement>(".sat");
         const timeEl = root.querySelector<HTMLElement>(".time");
+
+        const labelEl = root.querySelector<HTMLElement>(".vehicle-label");
+        const vehicleNoEl = root.querySelector<HTMLElement>(".vehicle-no");
+        const statusEl = root.querySelector<HTMLElement>(".vehicle-status");
+        const ignitionEl = root.querySelector<HTMLElement>(".ignition");
+        if (labelEl) labelEl.textContent = vehicle.vehicleNo.slice(-4);
+        if (vehicleNoEl) vehicleNoEl.textContent = vehicle.vehicleNo;
+        if (statusEl) statusEl.textContent = vehicle.status;
+        if (ignitionEl) ignitionEl.textContent = vehicle.ignition ? "ON" : "OFF";
 
         const state: MarkerState = { marker, root, icon, speedEl, signalEl, satelliteEl, timeEl, animationFrameId: null };
         this.updateMarker(state, vehicle);

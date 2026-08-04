@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { fetchChatConversations, fetchChatThread, fetchChatThreadSince, markChatThreadRead, sendChatMessage } from "@/lib/api"
 import { ChatMessageResponse, ConversationSummary } from "@/lib/types"
-import { MessageCircle, Send, User, RefreshCw, Loader2 } from "lucide-react"
+import { AlertTriangle, MessageCircle, Send, User, RefreshCw, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 const CONVERSATIONS_POLL_MS = 10000
@@ -14,12 +14,20 @@ export function ChatPanel() {
     const [conversations, setConversations] = useState<ConversationSummary[]>([])
     const [loadingConversations, setLoadingConversations] = useState(true)
     const [selectedId, setSelectedId] = useState<number | null>(null)
+    const [threadError, setThreadError] = useState(false)
 
     const [messages, setMessages] = useState<ChatMessageResponse[]>([])
     const [loadingThread, setLoadingThread] = useState(false)
     const [text, setText] = useState("")
     const [sending, setSending] = useState(false)
     const lastIdRef = useRef(0)
+    // Separate from lastIdRef being 0 — that's also the legitimate value for "thread has zero
+    // messages", so it can't double as an "initial load succeeded" flag.
+    const initializedRef = useRef(false)
+    // Bumped on every conversation switch — an in-flight request from a conversation the admin
+    // has since switched away from checks this before applying its result, so a slow response for
+    // conversation A can never land on screen while B is now selected.
+    const requestIdRef = useRef(0)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
     const loadConversations = useCallback(async () => {
@@ -38,32 +46,56 @@ export function ChatPanel() {
         return () => clearInterval(interval)
     }, [loadConversations])
 
-    const loadThread = useCallback(async (otherUserId: number) => {
+    const loadThread = useCallback(async (otherUserId: number, requestId: number) => {
         setLoadingThread(true)
         try {
             const page = await fetchChatThread(otherUserId, 0, PAGE_SIZE)
+            if (requestIdRef.current !== requestId) return
             const ascending = [...page.content].reverse()
             setMessages(ascending)
             lastIdRef.current = ascending.length > 0 ? ascending[ascending.length - 1].id : 0
+            initializedRef.current = true
+            setThreadError(false)
             await markChatThreadRead(otherUserId)
             loadConversations()
         } catch (e) {
+            if (requestIdRef.current !== requestId) return
             console.error("Failed to fetch thread", e)
+            setThreadError(true)
         } finally {
-            setLoadingThread(false)
+            if (requestIdRef.current === requestId) setLoadingThread(false)
         }
     }, [loadConversations])
 
     useEffect(() => {
         if (selectedId == null) return
-        loadThread(selectedId)
+        const requestId = ++requestIdRef.current
+        // Clear immediately rather than leaving the previous conversation's messages on screen —
+        // otherwise, until this fetch resolves (or forever, if it fails), they'd render under the
+        // NEW conversation's header and the composer would misdirect a reply to the new recipient.
+        setMessages([])
+        setThreadError(false)
+        lastIdRef.current = 0
+        initializedRef.current = false
+        loadThread(selectedId, requestId)
 
         const interval = setInterval(async () => {
-            if (lastIdRef.current === 0) return
+            if (requestIdRef.current !== requestId) return
+            if (!initializedRef.current) {
+                // Initial load never succeeded — retry it instead of since-polling, which would
+                // otherwise silently no-op forever (lastIdRef stuck at 0 either way).
+                await loadThread(selectedId, requestId)
+                return
+            }
             try {
                 const fresh = await fetchChatThreadSince(selectedId, lastIdRef.current)
+                if (requestIdRef.current !== requestId) return
                 if (fresh.length > 0) {
-                    setMessages((prev) => [...prev, ...fresh])
+                    setMessages((prev) => {
+                        const seen = new Set(prev.map((m) => m.id))
+                        const deduped = fresh.filter((m) => !seen.has(m.id))
+                        return deduped.length > 0 ? [...prev, ...deduped] : prev
+                    })
                     lastIdRef.current = fresh[fresh.length - 1].id
                     markChatThreadRead(selectedId).catch(() => undefined)
                     loadConversations()
@@ -87,8 +119,11 @@ export function ChatPanel() {
         setText("")
         try {
             const sent = await sendChatMessage({ recipientId: selectedId, text: body })
-            setMessages((prev) => [...prev, sent])
-            lastIdRef.current = sent.id
+            // A poll tick already in flight when this resolves can independently fetch the same
+            // message via fetchChatThreadSince — dedupe by id rather than assume this is the only
+            // place that ever appends it.
+            setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]))
+            lastIdRef.current = Math.max(lastIdRef.current, sent.id)
         } catch (e) {
             console.error("Failed to send message", e)
             toast.error("Failed to send message")
@@ -166,6 +201,11 @@ export function ChatPanel() {
                             {loadingThread ? (
                                 <div className="flex items-center justify-center h-full text-slate-400">
                                     <Loader2 size={20} className="animate-spin" />
+                                </div>
+                            ) : threadError && messages.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
+                                    <AlertTriangle size={22} />
+                                    <p className="text-xs">Could not load this conversation. Retrying automatically…</p>
                                 </div>
                             ) : (
                                 messages.map((m) => {

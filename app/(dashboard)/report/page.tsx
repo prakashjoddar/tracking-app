@@ -13,6 +13,7 @@ import {
     Signpost,
     AlertTriangle,
     ArrowLeftRight,
+    History,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -128,6 +129,15 @@ const reports = [
         color: "bg-red-50 text-red-600",
         border: "hover:border-red-200",
         href: "/report/route-deviation",
+    },
+    {
+        id: "timeline",
+        title: "Timeline",
+        description: "A vehicle's day as alternating stops and trips, with locations and duration.",
+        icon: History,
+        color: "bg-sky-50 text-sky-600",
+        border: "hover:border-sky-200",
+        href: "/report/timeline",
     },
     {
         id: "vehicle-replacement",

@@ -3,17 +3,25 @@
 import { useEffect, useState } from "react"
 import { AlertConfigUpdateRequest } from "@/lib/types"
 import { Switch } from "@/components/ui/switch"
-import { BellRing, Gauge, RotateCcw, Save, Timer, X } from "lucide-react"
+import { BellRing, Gauge, RotateCcw, Save, ShieldAlert, Timer, TrendingUp, X } from "lucide-react"
 import { toast } from "sonner"
 
 /** Mirrors gps-engine's AlertConfigService hardcoded fallback defaults (app.trip.approach-radius-m,
- * app.trip.departure-multiplier, app.trip.sequence-stall-timeout-min, app.geofence.confirm-points)
- * — used only to show what's currently in effect as placeholder text when a field is left blank. */
+ * app.trip.departure-multiplier, app.trip.sequence-stall-timeout-min, app.geofence.confirm-points,
+ * app.alert.harsh-*-default, app.alert.tampering-*-default) — used only to show what's currently
+ * in effect as placeholder text when a field is left blank. */
 const ENGINE_DEFAULTS = {
     approachRadiusM: 1000,
     departureMultiplier: 2,
     missedStopTimeoutMin: 20,
     geofenceConfirmPoints: 2,
+    harshBrakingDecelThreshold: 8,
+    harshAccelThreshold: 8,
+    harshCorneringDegPerSec: 25,
+    minSpeedForHarshEventKmh: 10,
+    tamperingDistanceThresholdM: 50,
+    tamperingSpeedThresholdKmh: 5,
+    tamperingGracePeriodSec: 60,
 }
 
 type AlertConfigFormProps = {
@@ -171,6 +179,23 @@ export function AlertConfigForm({ title, subtitle, initial, orgDefault, showRese
                         <ToggleRow label="Low Battery" checked={form.lowBatteryAlert} onChange={(v) => set("lowBatteryAlert", v)} />
                         <ToggleRow label="Geofence Enter/Exit" checked={form.geoFenceAlert} onChange={(v) => set("geoFenceAlert", v)} />
                         <ToggleRow label="Trip" checked={form.tripAlert} onChange={(v) => set("tripAlert", v)} />
+                        <ToggleRow
+                            label="Harsh Driving"
+                            checked={form.harshDrivingAlert ?? orgDefault?.harshDrivingAlert ?? true}
+                            onChange={(v) => set("harshDrivingAlert", v)}
+                        />
+                        {/* No gps-engine Strategy implementation exists yet for this one — toggle
+                        wired up ahead of that so the config UI already works once one is written. */}
+                        <ToggleRow
+                            label="External Power Cut/Restore"
+                            checked={form.externalPowerAlert ?? orgDefault?.externalPowerAlert ?? true}
+                            onChange={(v) => set("externalPowerAlert", v)}
+                        />
+                        <ToggleRow
+                            label="Tampering"
+                            checked={form.tamperingAlert ?? orgDefault?.tamperingAlert ?? true}
+                            onChange={(v) => set("tamperingAlert", v)}
+                        />
                     </div>
                 </Section>
 
@@ -214,6 +239,89 @@ export function AlertConfigForm({ title, subtitle, initial, orgDefault, showRese
                                 value={form.geofenceConfirmPoints ?? ""}
                                 onChange={(e) => set("geofenceConfirmPoints", e.target.value === "" ? null : Number(e.target.value))}
                                 placeholder={String(orgDefault?.geofenceConfirmPoints ?? ENGINE_DEFAULTS.geofenceConfirmPoints)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                    </div>
+                </Section>
+
+                <Section icon={<TrendingUp size={13} />} title="Harsh Driving Thresholds (optional)">
+                    <p className="text-[11px] text-gray-400 -mt-1">
+                        Leave blank to use the value shown as a placeholder — the org default, or the app's own built-in default.
+                    </p>
+                    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
+                        <FormField label="Harsh Braking" suffix="km/h per second">
+                            <input
+                                type="number" step="0.1"
+                                value={form.harshBrakingDecelThreshold ?? ""}
+                                onChange={(e) => set("harshBrakingDecelThreshold", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.harshBrakingDecelThreshold ?? ENGINE_DEFAULTS.harshBrakingDecelThreshold)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                        <FormField label="Harsh Acceleration" suffix="km/h per second">
+                            <input
+                                type="number" step="0.1"
+                                value={form.harshAccelThreshold ?? ""}
+                                onChange={(e) => set("harshAccelThreshold", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.harshAccelThreshold ?? ENGINE_DEFAULTS.harshAccelThreshold)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                    </div>
+                    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
+                        <FormField label="Harsh Cornering" suffix="degrees per second">
+                            <input
+                                type="number" step="0.1"
+                                value={form.harshCorneringDegPerSec ?? ""}
+                                onChange={(e) => set("harshCorneringDegPerSec", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.harshCorneringDegPerSec ?? ENGINE_DEFAULTS.harshCorneringDegPerSec)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                        <FormField label="Minimum Speed for Detection" suffix="km/h">
+                            <input
+                                type="number" step="0.1"
+                                value={form.minSpeedForHarshEventKmh ?? ""}
+                                onChange={(e) => set("minSpeedForHarshEventKmh", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.minSpeedForHarshEventKmh ?? ENGINE_DEFAULTS.minSpeedForHarshEventKmh)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                    </div>
+                </Section>
+
+                <Section icon={<ShieldAlert size={13} />} title="Tampering Detection (optional)">
+                    <p className="text-[11px] text-gray-400 -mt-1">
+                        Detects unexpected movement while ignition is off (theft or an authorized tow — this can't tell them apart, it just flags it). Leave blank to use the value shown as a placeholder — the org default, or the app's own built-in default.
+                    </p>
+                    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
+                        <FormField label="Distance Threshold" suffix="m">
+                            <input
+                                type="number" step="1"
+                                value={form.tamperingDistanceThresholdM ?? ""}
+                                onChange={(e) => set("tamperingDistanceThresholdM", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.tamperingDistanceThresholdM ?? ENGINE_DEFAULTS.tamperingDistanceThresholdM)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                        <FormField label="Speed Threshold" suffix="km/h">
+                            <input
+                                type="number" step="0.1"
+                                value={form.tamperingSpeedThresholdKmh ?? ""}
+                                onChange={(e) => set("tamperingSpeedThresholdKmh", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.tamperingSpeedThresholdKmh ?? ENGINE_DEFAULTS.tamperingSpeedThresholdKmh)}
+                                className={inputClass}
+                            />
+                        </FormField>
+                    </div>
+                    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
+                        <FormField label="Grace Period After Key-Off" suffix="seconds">
+                            <input
+                                type="number" step="1"
+                                value={form.tamperingGracePeriodSec ?? ""}
+                                onChange={(e) => set("tamperingGracePeriodSec", e.target.value === "" ? null : Number(e.target.value))}
+                                placeholder={String(orgDefault?.tamperingGracePeriodSec ?? ENGINE_DEFAULTS.tamperingGracePeriodSec)}
                                 className={inputClass}
                             />
                         </FormField>

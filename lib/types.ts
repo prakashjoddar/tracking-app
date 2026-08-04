@@ -156,7 +156,15 @@ export type VehicleAlertType =
   | "PARKED"
   | "BATTERY_LOW"
   | "GEOFENCE_ENTER"
-  | "GEOFENCE_EXIT";
+  | "GEOFENCE_EXIT"
+  | "HARSH_BRAKING"
+  | "HARSH_ACCELERATION"
+  | "HARSH_CORNERING"
+  // No gps-engine Strategy implementation exists yet for these 3 — added ahead of that so the
+  // config/UI plumbing is already in place once one is written.
+  | "EXTERNAL_POWER_CUT"
+  | "EXTERNAL_POWER_RESTORE"
+  | "TAMPERING";
 
 export type VehicleAlert = {
   vehicleNo: string;
@@ -397,6 +405,26 @@ export type TripReportEntry = {
   totalStopsVisited: number;
 };
 
+/** One block of a vehicle's day — GET /report/timeline/{vehicleNo}. `endTime`/`durationSeconds`
+ * are null when this is the last segment of the day and ignition hasn't transitioned again yet
+ * (still ongoing). `endLatitude/Longitude/Address` are null for STOP segments (only one location).
+ * `distanceKm`/`avgSpeedKmh`/`maxSpeedKmh` are null for STOP segments (nothing moved). */
+export type TimelineSegment = {
+  type: "STOP" | "TRIP";
+  startTime: string; // ISO LocalDateTime
+  endTime: string | null;
+  durationSeconds: number | null;
+  startLatitude: number;
+  startLongitude: number;
+  startAddress: string;
+  endLatitude: number | null;
+  endLongitude: number | null;
+  endAddress: string | null;
+  distanceKm: number | null;
+  avgSpeedKmh: number | null;
+  maxSpeedKmh: number | null;
+};
+
 export type VehicleReplacementHistoryEntry = {
   id: number;
   damagedVehicleNumber: string;
@@ -427,6 +455,24 @@ export type AlertConfigEntry = {
   departureMultiplier: number | null;
   missedStopTimeoutMin: number | null;
   geofenceConfirmPoints: number | null;
+  // Same nullable convention as above — harshDrivingAlert is a nullable boolean (not a plain
+  // boolean like the toggles above) for the same reason: added after per-vehicle override rows
+  // already existed.
+  harshDrivingAlert: boolean | null;
+  harshBrakingDecelThreshold: number | null;
+  harshAccelThreshold: number | null;
+  harshCorneringDegPerSec: number | null;
+  minSpeedForHarshEventKmh: number | null;
+  // No gps-engine Strategy implementation exists yet for EXTERNAL_POWER_CUT/EXTERNAL_POWER_RESTORE
+  // — this toggle is wired up ahead of that. One toggle covers both EXTERNAL_POWER_CUT and
+  // EXTERNAL_POWER_RESTORE, matching how the toggle above covers both IGNITION_ON and IGNITION_OFF.
+  externalPowerAlert: boolean | null;
+  // TamperingStrategy detects unexpected movement while ignition is off — distance/speed
+  // thresholds and a grace period after key-off before it starts watching.
+  tamperingAlert: boolean | null;
+  tamperingDistanceThresholdM: number | null;
+  tamperingSpeedThresholdKmh: number | null;
+  tamperingGracePeriodSec: number | null;
 };
 
 export type AlertConfigUpdateRequest = Omit<AlertConfigEntry, "vehicleNo" | "vehicleName" | "overridden">;

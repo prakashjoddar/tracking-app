@@ -14,6 +14,7 @@ export function AlertConfigCard({ config, isEditing, onEdit }: AlertConfigCardPr
     const enabledCount = [
         config.ignitionAlert, config.overSpeedAlert, config.stateAlert,
         config.lowBatteryAlert, config.geoFenceAlert, config.tripAlert,
+        config.harshDrivingAlert, config.externalPowerAlert, config.tamperingAlert,
     ].filter(Boolean).length
 
     return (
@@ -40,13 +41,13 @@ export function AlertConfigCard({ config, isEditing, onEdit }: AlertConfigCardPr
                         }`}>
                         {config.overridden ? "Custom" : "Using Default"}
                     </span>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${enabledCount === 6
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${enabledCount === 9
                         ? "bg-green-100 text-green-700"
                         : enabledCount === 0
                             ? "bg-gray-100 text-gray-500"
                             : "bg-amber-100 text-amber-700"
                         }`}>
-                        {enabledCount}/6 alerts
+                        {enabledCount}/9 alerts
                     </span>
                 </div>
             </div>

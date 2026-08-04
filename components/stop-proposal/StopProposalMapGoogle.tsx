@@ -6,7 +6,7 @@ import { fetchStopProposalContext } from "@/lib/api"
 import { StopProposal, Stop } from "@/lib/types"
 import { RouteManager } from "@/components/map/RouteManager"
 import { StopMarkerManager } from "@/components/map/StopMarkerManager"
-import { Loader2, MapPin } from "lucide-react"
+import { AlertTriangle, Loader2, MapPin } from "lucide-react"
 
 type StopProposalMapGoogleProps = {
     proposal: StopProposal | null
@@ -38,6 +38,7 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
     const proposedMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
     const [mapReady, setMapReady] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [contextLoadError, setContextLoadError] = useState(false)
 
     const { isLoaded, loadError } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY!,
@@ -75,6 +76,7 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
 
         let cancelled = false
         setLoading(true)
+        setContextLoadError(false)
 
         fetchStopProposalContext(proposal.tripId)
             .then((context) => {
@@ -148,7 +150,9 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
                 if (hasBounds) mapRef.current.fitBounds(bounds, 60)
             })
             .catch((e) => {
+                if (cancelled) return
                 console.error("Failed to load trip context for stop request map", e)
+                setContextLoadError(true)
             })
             .finally(() => {
                 if (!cancelled) setLoading(false)
@@ -193,6 +197,12 @@ export function StopProposalMapGoogle({ proposal }: StopProposalMapGoogleProps) 
             {loading && (
                 <div className="absolute top-4 left-4 flex items-center gap-2 rounded-lg bg-white shadow px-3 py-1.5 text-xs font-medium text-slate-600">
                     <Loader2 size={13} className="animate-spin" /> Loading route…
+                </div>
+            )}
+
+            {!loading && contextLoadError && (
+                <div className="absolute top-4 left-4 flex items-center gap-2 rounded-lg bg-white shadow px-3 py-1.5 text-xs font-medium text-red-600">
+                    <AlertTriangle size={13} /> Could not load route/stops for this request
                 </div>
             )}
         </div>

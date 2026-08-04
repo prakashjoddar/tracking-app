@@ -39,19 +39,28 @@ export default function StopListPanel() {
     load()
   }, [tripId])
 
-  // Delete pending + bulk save remaining in one Save click
+  // Delete pending + bulk save remaining in one Save click. Split into two try blocks
+  // (rather than one) so a failure partway through gives an accurate message — deletion
+  // is a separate, already-committed server call and can't be undone from here if the
+  // later save step fails, so the user needs to know which part actually went through.
   const handleSaveAll = async (): Promise<void> => {
     if (!tripId) return
-    try {
-      setSaving(true)
+    setSaving(true)
 
-      // 1. Delete stops that were removed from the list (single batch request)
-      if (deletedStopIds.length > 0) {
+    if (deletedStopIds.length > 0) {
+      try {
         await deleteStops(deletedStopIds)
         clearDeletedStops()
+      } catch (e) {
+        console.error("Failed to delete stops:", e)
+        toast.error("Failed to delete removed stops — nothing was saved. Please retry.")
+        setSaving(false)
+        return
       }
+    }
 
-      // 2. Bulk save remaining stops
+    try {
+      // Bulk save remaining stops
       if (stops.length > 0) {
         const payload = stops.map((stop, index) => ({
           // omit temp IDs so the server generates a real one
@@ -75,7 +84,7 @@ export default function StopListPanel() {
       toast.success("Stops saved")
     } catch (e) {
       console.error("Failed to save stops:", e)
-      toast.error("Failed to save stops")
+      toast.error("Removed stops were deleted, but saving the remaining stops failed. Please retry.")
     } finally {
       setSaving(false)
     }

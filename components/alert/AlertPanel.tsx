@@ -7,7 +7,8 @@ import { Alert, AlertType, VehicleAlert, VehicleAlertType } from "@/lib/types"
 import {
     Bell, RefreshCw, ChevronLeft, ChevronRight, Route, Gauge, Bus,
     PlayCircle, CheckCircle2, Navigation, MapPin, ArrowRightCircle, AlertTriangle,
-    Zap, PowerOff, Activity, Pause, BatteryWarning, LogIn, LogOut, type LucideIcon,
+    Zap, PowerOff, Activity, Pause, BatteryWarning, LogIn, LogOut, TrendingDown, TrendingUp,
+    CornerUpRight, PlugZap, Unplug, ShieldAlert, type LucideIcon,
 } from "lucide-react"
 import { useVehicleManageStore } from "@/store/vehicle-store"
 import { SearchableSelect } from "@/components/ui/searchable-select"
@@ -57,6 +58,14 @@ const vehicleTypeStyle: Record<VehicleAlertType, string> = {
     BATTERY_LOW: "bg-red-50 text-red-700 border-red-200",
     GEOFENCE_ENTER: "bg-purple-50 text-purple-700 border-purple-200",
     GEOFENCE_EXIT: "bg-slate-100 text-slate-600 border-slate-200",
+    HARSH_BRAKING: "bg-red-50 text-red-700 border-red-200",
+    HARSH_ACCELERATION: "bg-orange-50 text-orange-700 border-orange-200",
+    HARSH_CORNERING: "bg-orange-50 text-orange-700 border-orange-200",
+    // No gps-engine Strategy implementation exists yet for these 3 — entries added ahead of that
+    // so this file compiles (VehicleAlertType is a Record key here) once one is written.
+    EXTERNAL_POWER_CUT: "bg-red-50 text-red-700 border-red-200",
+    EXTERNAL_POWER_RESTORE: "bg-green-50 text-green-700 border-green-200",
+    TAMPERING: "bg-red-50 text-red-700 border-red-200",
 }
 
 const vehicleTypeLabel: Record<VehicleAlertType, string> = {
@@ -70,6 +79,12 @@ const vehicleTypeLabel: Record<VehicleAlertType, string> = {
     BATTERY_LOW: "Battery Low",
     GEOFENCE_ENTER: "Geofence Entered",
     GEOFENCE_EXIT: "Geofence Exited",
+    HARSH_BRAKING: "Harsh Braking",
+    HARSH_ACCELERATION: "Harsh Acceleration",
+    HARSH_CORNERING: "Harsh Cornering",
+    EXTERNAL_POWER_CUT: "External Power Cut",
+    EXTERNAL_POWER_RESTORE: "External Power Restored",
+    TAMPERING: "Tampering",
 }
 
 const vehicleTypeIcon: Record<VehicleAlertType, LucideIcon> = {
@@ -83,12 +98,23 @@ const vehicleTypeIcon: Record<VehicleAlertType, LucideIcon> = {
     BATTERY_LOW: BatteryWarning,
     GEOFENCE_ENTER: LogIn,
     GEOFENCE_EXIT: LogOut,
+    HARSH_BRAKING: TrendingDown,
+    HARSH_ACCELERATION: TrendingUp,
+    HARSH_CORNERING: CornerUpRight,
+    EXTERNAL_POWER_CUT: Unplug,
+    EXTERNAL_POWER_RESTORE: PlugZap,
+    TAMPERING: ShieldAlert,
 }
 
 const vehicleAccent: Partial<Record<VehicleAlertType, string>> = {
     OVER_SPEED: "#f87171",
     BATTERY_LOW: "#f87171",
+    HARSH_BRAKING: "#f87171",
+    HARSH_ACCELERATION: "#fb923c",
+    HARSH_CORNERING: "#fb923c",
     IGNITION_ON: "#4ade80",
+    EXTERNAL_POWER_CUT: "#f87171",
+    TAMPERING: "#f87171",
 }
 
 function formatValue(v: number | null): string {

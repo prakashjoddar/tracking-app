@@ -5,7 +5,8 @@ import { NotificationEvent } from "@/lib/types";
 import { useNotificationStore } from "@/store/notification-store";
 import { getCurrentUserType } from "@/lib/utils";
 
-const RECONNECT_DELAY_MS = 3000;
+const RECONNECT_BASE_MS = 3000;
+const RECONNECT_MAX_MS = 60000;
 
 function getAccessToken(): string | null {
   const match = document.cookie.match(/(^|;\s*)access_token=([^;]*)/);
@@ -56,12 +57,20 @@ export function useNotificationStream() {
     let eventSource: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
+    // Doubles on every failed attempt (capped) and resets once a connection actually opens — a
+    // fixed 3s retry would otherwise hammer the server forever during e.g. an expired-token
+    // outage that isn't going to resolve itself on the next tick.
+    let reconnectDelay = RECONNECT_BASE_MS;
 
     function connect() {
       const token = getAccessToken();
       if (!token) return; // not logged in — middleware will redirect anyway
 
       eventSource = new EventSource(`${NOTIFICATION_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
+
+      eventSource.onopen = () => {
+        reconnectDelay = RECONNECT_BASE_MS;
+      };
 
       eventSource.addEventListener("notification", (e: MessageEvent) => {
         try {
@@ -77,7 +86,8 @@ export function useNotificationStream() {
         eventSource?.close();
         eventSource = null;
         if (!cancelled) {
-          reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+          reconnectTimer = setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_MS);
         }
       };
     }
