@@ -7,7 +7,7 @@ import { useCurrentUserStore } from "@/store/current-user-store"
 import { VehicleMiniMapEngine } from "@/components/dashboard-widgets/VehicleMiniMapEngine"
 import {
     LayoutDashboard, Route as RouteIcon, Gauge, Signpost, RefreshCw,
-    Trophy, TrendingUp, MapPin, Navigation,
+    TrendingUp, MapPin, Navigation, Activity, AlertTriangle,
 } from "lucide-react"
 
 const LIVE_POLL_MS = 30000
@@ -25,17 +25,18 @@ function StatTile({ icon, label, value, accent }: { icon: React.ReactNode; label
 }
 
 function RankList({ title, icon, entries, unit }: { title: string; icon: React.ReactNode; entries: { vehicleNo: string; value: number }[]; unit: string }) {
+    const safeEntries = entries ?? []
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
             <div className="flex items-center gap-2 mb-3">
                 {icon}
                 <h3 className="text-sm font-bold text-slate-800">{title}</h3>
             </div>
-            {entries.length === 0 ? (
+            {safeEntries.length === 0 ? (
                 <p className="text-xs text-slate-400">No data yet</p>
             ) : (
                 <div className="space-y-2">
-                    {entries.map((e, idx) => (
+                    {safeEntries.map((e, idx) => (
                         <div key={`${e.vehicleNo}-${idx}`} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2 min-w-0">
                                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">{idx + 1}</span>
@@ -65,9 +66,10 @@ function WindowSection({ title, subtitle, data }: { title: string; subtitle: str
                 <StatTile icon={<Gauge size={18} className="text-red-600" />} label="Route Deviation" value={`${data.routeDeviationPct.toFixed(1)}%`} accent="bg-red-50" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <RankList title="Top Performers" icon={<Trophy size={16} className="text-amber-500" />} entries={data.topPerformers} unit=" pts" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <RankList title="Top Running Vehicles" icon={<TrendingUp size={16} className="text-blue-500" />} entries={data.topRunningVehicles} unit=" Km" />
+                <RankList title="Most Utilized" icon={<Activity size={16} className="text-emerald-500" />} entries={data.mostUtilized} unit="%" />
+                <RankList title="Needs Attention" icon={<AlertTriangle size={16} className="text-red-500" />} entries={data.needsAttention} unit=" alerts" />
             </div>
         </div>
     )

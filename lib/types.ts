@@ -564,8 +564,9 @@ export type DashboardWindow = {
   tripCompletionPct: number;
   stopCompletionPct: number;
   routeDeviationPct: number;
-  topPerformers: VehicleRankEntry[];
   topRunningVehicles: VehicleRankEntry[];
+  mostUtilized: VehicleRankEntry[];
+  needsAttention: VehicleRankEntry[];
 };
 
 /** GET /dashboard/summary — pre-aggregated nightly, never computed from raw GPS on request. */
