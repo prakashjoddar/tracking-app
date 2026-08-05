@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, Copy, KeyRound, Loader2, Plus, RefreshCw, Server } from "lucide-react"
+import { Building2, Copy, KeyRound, Link2, Loader2, Plus, RefreshCw, Server, Unlink } from "lucide-react"
 import { toast } from "sonner"
 import {
     createErpAccount,
+    fetchAllUsers,
     fetchErpAccounts,
     fetchErpLinkedOrgs,
+    linkErpOrg,
     rotateErpKey,
+    unlinkErpOrg,
     updateErpWebhook,
 } from "@/lib/api"
 import { getCurrentUserType } from "@/lib/utils"
-import type { ErpAccountRequest, ErpAccountResponse, UserRequestResponse } from "@/lib/types"
+import type { ErpAccountRequest, ErpAccountResponse, ErpOrgResponse, UserRequestResponse } from "@/lib/types"
 
 const emptyDraft: ErpAccountRequest = {
-    firstName: "", lastName: "", email: "", mobileNo: "", username: "", password: "", webhookUrl: "",
+    firstName: "", lastName: "", orgName: "", email: "", mobileNo: "", username: "", password: "", webhookUrl: "",
 }
 
 export function ErpProvidersPanel() {
@@ -29,7 +32,10 @@ export function ErpProvidersPanel() {
     const [busyId, setBusyId] = useState<number | null>(null)
     const [webhookDrafts, setWebhookDrafts] = useState<Record<number, string>>({})
     const [expandedId, setExpandedId] = useState<number | null>(null)
-    const [linkedOrgs, setLinkedOrgs] = useState<UserRequestResponse[]>([])
+    const [linkedOrgs, setLinkedOrgs] = useState<ErpOrgResponse[]>([])
+    const [allOrgs, setAllOrgs] = useState<UserRequestResponse[]>([])
+    const [selectedOrgToLink, setSelectedOrgToLink] = useState<string>("")
+    const [linking, setLinking] = useState(false)
 
     useEffect(() => {
         if (getCurrentUserType() !== "SUPER") {
@@ -55,6 +61,13 @@ export function ErpProvidersPanel() {
 
     useEffect(() => {
         if (authorized) load()
+    }, [authorized])
+
+    useEffect(() => {
+        if (!authorized) return
+        fetchAllUsers()
+            .then(all => setAllOrgs(all.filter(u => u.type === "ORG")))
+            .catch(e => console.error("Failed to load orgs:", e))
     }, [authorized])
 
     const handleCreate = async () => {
@@ -119,11 +132,43 @@ export function ErpProvidersPanel() {
         try {
             const orgs = await fetchErpLinkedOrgs(account.id)
             setLinkedOrgs(orgs)
+            setSelectedOrgToLink("")
             setExpandedId(account.id)
         } catch (e) {
             console.error("Failed to load linked orgs:", e)
             toast.error("Failed to load linked orgs.")
         }
+    }
+
+    const handleLinkOrg = async (account: ErpAccountResponse) => {
+        if (!selectedOrgToLink) return
+        try {
+            setLinking(true)
+            await linkErpOrg(account.id, Number(selectedOrgToLink))
+            const orgs = await fetchErpLinkedOrgs(account.id)
+            setLinkedOrgs(orgs)
+            setSelectedOrgToLink("")
+            toast.success("Org linked.")
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || e.message || "Failed to link org.")
+        } finally {
+            setLinking(false)
+        }
+    }
+
+    const handleUnlinkOrg = async (account: ErpAccountResponse, org: ErpOrgResponse) => {
+        try {
+            await unlinkErpOrg(account.id, org.id)
+            setLinkedOrgs(prev => prev.filter(o => o.id !== org.id))
+            toast.success("Org unlinked.")
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || e.message || "Failed to unlink org.")
+        }
+    }
+
+    const handleCopyOrgKey = (orgKey: string) => {
+        navigator.clipboard.writeText(orgKey)
+        toast.success("orgKey copied to clipboard.")
     }
 
     if (!authorized) return null
@@ -159,10 +204,13 @@ export function ErpProvidersPanel() {
 
             {showCreate && (
                 <div className="shrink-0 mx-6 mt-4 p-4 rounded-2xl border border-slate-200 bg-slate-50/50 grid grid-cols-2 gap-3">
-                    <input placeholder="First name" value={draft.firstName}
+                    <input placeholder="Organization name (e.g. Acme ERP Systems)" value={draft.orgName}
+                        onChange={e => setDraft(d => ({ ...d, orgName: e.target.value }))}
+                        className="col-span-2 px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+                    <input placeholder="Contact first name" value={draft.firstName}
                         onChange={e => setDraft(d => ({ ...d, firstName: e.target.value }))}
                         className="px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-                    <input placeholder="Last name" value={draft.lastName}
+                    <input placeholder="Contact last name" value={draft.lastName}
                         onChange={e => setDraft(d => ({ ...d, lastName: e.target.value }))}
                         className="px-3 py-2 rounded-lg border border-slate-200 text-sm" />
                     <input placeholder="Email" value={draft.email}
@@ -217,9 +265,11 @@ export function ErpProvidersPanel() {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-sm font-semibold text-slate-900 truncate">
-                                            {account.firstName} {account.lastName}
+                                            {account.orgName || `${account.firstName} ${account.lastName}`}
                                         </p>
-                                        <p className="text-xs text-slate-400 truncate">{account.email}</p>
+                                        <p className="text-xs text-slate-400 truncate">
+                                            {account.orgName ? `${account.firstName} ${account.lastName} · ` : ""}{account.email}
+                                        </p>
                                     </div>
                                 </div>
                                 <button
@@ -268,18 +318,53 @@ export function ErpProvidersPanel() {
                             </div>
 
                             {expandedId === account.id && (
-                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
                                     {linkedOrgs.length === 0 ? (
                                         <p className="text-xs text-slate-400">No orgs linked yet.</p>
                                     ) : (
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="space-y-1.5">
                                             {linkedOrgs.map(org => (
-                                                <span key={org.id} className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs text-slate-700">
-                                                    {org.firstName} {org.lastName} <span className="text-slate-400">#{org.id}</span>
-                                                </span>
+                                                <div key={org.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-100 text-xs text-slate-700">
+                                                    <span className="truncate">{org.orgName || `${org.firstName} ${org.lastName}`}</span>
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        <code className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[11px] text-slate-500">
+                                                            {org.orgKey.slice(0, 8)}…
+                                                        </code>
+                                                        <button onClick={() => handleCopyOrgKey(org.orgKey)} title="Copy orgKey"
+                                                            className="p-1 rounded hover:bg-slate-200 text-slate-500">
+                                                            <Copy size={12} />
+                                                        </button>
+                                                        <button onClick={() => handleUnlinkOrg(account, org)} title="Unlink"
+                                                            className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-red-600">
+                                                            <Unlink size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             ))}
                                         </div>
                                     )}
+
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={selectedOrgToLink}
+                                            onChange={e => setSelectedOrgToLink(e.target.value)}
+                                            className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white"
+                                        >
+                                            <option value="">Link an existing org...</option>
+                                            {allOrgs
+                                                .filter(org => !linkedOrgs.some(l => String(l.id) === org.id))
+                                                .map(org => (
+                                                    <option key={org.id} value={org.id}>
+                                                        {org.orgName || `${org.firstName} ${org.lastName}`} (#{org.id})
+                                                    </option>
+                                                ))}
+                                        </select>
+                                        <button onClick={() => handleLinkOrg(account)} disabled={!selectedOrgToLink || linking}
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 disabled:opacity-40">
+                                            {linking ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
+                                            Link
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

@@ -212,6 +212,7 @@ export type UserRequestResponse = {
   id?: string;
   firstName: string;
   lastName: string;
+  orgName?: string;
   email: string;
   mobileNo: string;
   username: string;
@@ -581,6 +582,7 @@ export type ErpAccountResponse = {
   id: number;
   firstName: string;
   lastName: string;
+  orgName: string | null;
   email: string;
   mobileNo: string | null;
   webhookUrl: string | null;
@@ -590,9 +592,23 @@ export type ErpAccountResponse = {
 export type ErpAccountRequest = {
   firstName: string;
   lastName: string;
+  orgName?: string;
   email: string;
   mobileNo?: string;
   username?: string;
   password: string;
   webhookUrl?: string;
+};
+
+/** An org linked to an ERP, as SUPER sees it — includes the internal id (for SUPER's own unlink
+ * action) alongside orgKey (the UUID the ERP itself uses in every /erp/org/{orgKey}/** call; the
+ * ERP is never shown this internal id, only orgKey). */
+export type ErpOrgResponse = {
+  id: number;
+  orgKey: string;
+  firstName: string;
+  lastName: string;
+  orgName: string | null;
+  email: string;
+  mobileNo: string | null;
 };

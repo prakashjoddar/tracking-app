@@ -21,6 +21,7 @@ type UserFormProps = {
 const makeDefault = (type: UserType): UserRequestResponse => ({
     firstName: "",
     lastName: "",
+    orgName: "",
     email: "",
     mobileNo: "",
     username: "",
@@ -132,6 +133,7 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
                     id: current.id,
                     firstName: current.firstName || "",
                     lastName: current.lastName || "",
+                    orgName: current.orgName || "",
                     email: current.email || "",
                     mobileNo: current.mobileNo || "",
                     username: current.username || "",
@@ -175,6 +177,7 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
     const validate = () => {
         const e: Partial<Record<keyof UserRequestResponse, string>> = {}
         if (!form.firstName.trim()) e.firstName = "Required"
+        if (isOrg && !form.orgName?.trim()) e.orgName = "Required"
         if (!form.email.trim()) e.email = "Required"
         if (!form.username.trim()) e.username = "Required"
         if (mode === "add" && !form.password?.trim()) e.password = "Required for new users"
@@ -223,7 +226,7 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
                         {mode === "add" ? `Add ${typeLabel[form.type] ?? form.type}` : `Edit ${typeLabel[form.type] ?? form.type}`}
                     </h2>
                     <p className="text-sm text-slate-500 mt-1">
-                        {mode === "add" ? "Fill in the details below." : `Editing — ${form.firstName} ${form.lastName}`}
+                        {mode === "add" ? "Fill in the details below." : `Editing — ${isOrg && form.orgName ? form.orgName : `${form.firstName} ${form.lastName}`}`}
                     </p>
                 </div>
                 <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
@@ -269,13 +272,21 @@ export function UserForm({ mode, defaultType = "DRIVER", onClose }: UserFormProp
 
                 {/* Personal */}
                 <div>
-                    <SectionHeader icon={<User className="w-4 h-4" />} title="Personal Information" />
+                    <SectionHeader icon={<User className="w-4 h-4" />} title={isOrg ? "Organization Information" : "Personal Information"} />
                     <div className="grid grid-cols-2 gap-4">
-                        <Field label="First Name" required error={errors.firstName}>
+                        {isOrg && (
+                            <div className="col-span-2">
+                                <Field label="Organization Name" required error={errors.orgName}>
+                                    <Input value={form.orgName || ""} onChange={e => set("orgName", e.target.value)}
+                                        className={errors.orgName ? "border-red-500" : ""} placeholder="Lincoln Elementary" />
+                                </Field>
+                            </div>
+                        )}
+                        <Field label={isOrg ? "Contact First Name" : "First Name"} required error={errors.firstName}>
                             <Input value={form.firstName} onChange={e => set("firstName", e.target.value)}
                                 className={errors.firstName ? "border-red-500" : ""} placeholder="John" />
                         </Field>
-                        <Field label="Last Name">
+                        <Field label={isOrg ? "Contact Last Name" : "Last Name"}>
                             <Input value={form.lastName} onChange={e => set("lastName", e.target.value)} placeholder="Doe" />
                         </Field>
                         <div className="col-span-2">

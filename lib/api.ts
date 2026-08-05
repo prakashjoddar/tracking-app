@@ -32,6 +32,7 @@ import {
   DashboardSummaryResponse,
   ErpAccountResponse,
   ErpAccountRequest,
+  ErpOrgResponse,
 } from "./types";
 import axios from "axios";
 
@@ -761,7 +762,17 @@ export async function updateErpWebhook(
   return res.data;
 }
 
-export async function fetchErpLinkedOrgs(id: number): Promise<UserRequestResponse[]> {
-  const res = await api.get<UserRequestResponse[]>(`/erp/admin/${id}/orgs`);
+export async function fetchErpLinkedOrgs(id: number): Promise<ErpOrgResponse[]> {
+  const res = await api.get<ErpOrgResponse[]>(`/erp/admin/${id}/orgs`);
   return res.data;
+}
+
+/** Links an already-existing org (created the normal way, not via the ERP's own POST /erp/org) to
+ * this ERP account. */
+export async function linkErpOrg(erpId: number, orgId: number): Promise<void> {
+  await api.post(`/erp/admin/${erpId}/orgs/${orgId}`);
+}
+
+export async function unlinkErpOrg(erpId: number, orgId: number): Promise<void> {
+  await api.delete(`/erp/admin/${erpId}/orgs/${orgId}`);
 }

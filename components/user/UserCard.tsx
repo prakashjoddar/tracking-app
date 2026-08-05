@@ -36,6 +36,7 @@ export function UserCard({ user, isEditing, onEdit }: UserCardProps) {
     }
 
     const isDriver = user.type === "DRIVER"
+    const isOrg = user.type === "ORG"
     const photoUrl = resolveUserPhotoUrl(user.photoUrl)
 
     const roleStyle = isDriver
@@ -64,9 +65,13 @@ export function UserCard({ user, isEditing, onEdit }: UserCardProps) {
                         )}
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-900 truncate">
-                                {user.firstName} {user.lastName}
+                                {isOrg && user.orgName ? user.orgName : `${user.firstName} ${user.lastName}`}
                             </p>
-                            <p className="text-xs text-slate-400 font-mono mt-0.5">{user.username}</p>
+                            {isOrg && user.orgName ? (
+                                <p className="text-xs text-slate-400 truncate mt-0.5">{user.firstName} {user.lastName} · {user.username}</p>
+                            ) : (
+                                <p className="text-xs text-slate-400 font-mono mt-0.5">{user.username}</p>
+                            )}
                         </div>
                     </div>
                     <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider shrink-0", roleStyle)}>
