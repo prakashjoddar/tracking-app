@@ -51,12 +51,12 @@ export default function LoginPage() {
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-300">Email address</label>
+                        <label className="text-sm font-medium text-slate-300">Email or username</label>
                         <div className="relative group">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
                             <input
                                 name="email"
-                                type="email"
+                                type="text"
                                 required
                                 placeholder="name@company.com"
                                 className="w-full bg-slate-900/50 border border-slate-800 text-white rounded-xl py-2.5 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-slate-600"

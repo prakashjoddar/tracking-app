@@ -257,7 +257,9 @@ export function NavMain({
       menuKey: "STUDENTS",
     },
     {
-      name: "Sub Login",
+      // Same /user page manages ORG accounts for SUPER and SUB_ORG accounts for an ORG — mirrors
+      // mobile's more.tsx relabeling of its equivalent screen.
+      name: userType === "SUPER" ? "Organizations" : "Sub Login",
       icon: (
         <FaUsersCog
           className="size-4 mr-1"
