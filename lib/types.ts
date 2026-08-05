@@ -574,3 +574,25 @@ export type DashboardSummaryResponse = {
   month: DashboardWindow;
   yesterday: DashboardWindow;
 };
+
+/** An ERP integration account — SUPER-only provisioning, see /erp/admin/**. publicKey is the
+ * permanent credential that ERP's backend exchanges at POST /erp/token for a JWT. */
+export type ErpAccountResponse = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobileNo: string | null;
+  webhookUrl: string | null;
+  publicKey: string | null;
+};
+
+export type ErpAccountRequest = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobileNo?: string;
+  username?: string;
+  password: string;
+  webhookUrl?: string;
+};

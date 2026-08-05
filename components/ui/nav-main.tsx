@@ -9,6 +9,7 @@ import {
   Map as MapIcon,
   MapPin,
   Route,
+  Server,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -324,6 +325,17 @@ export function NavMain({
                 <Link href="/map-settings">
                   <MapIcon className="size-4 mr-1" style={{ color: menuColors[6] }} />
                   <span className="text-sm">Map Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {showMapSettings && (
+            <SidebarMenuItem key="ERP Providers">
+              <SidebarMenuButton asChild className="h-7">
+                <Link href="/erp-providers">
+                  <Server className="size-4 mr-1" style={{ color: menuColors[6] }} />
+                  <span className="text-sm">ERP Providers</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

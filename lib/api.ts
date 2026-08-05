@@ -30,6 +30,8 @@ import {
   SendChatMessageRequest,
   TimelineSegment,
   DashboardSummaryResponse,
+  ErpAccountResponse,
+  ErpAccountRequest,
 } from "./types";
 import axios from "axios";
 
@@ -731,4 +733,35 @@ export async function saveVehicleGroup(
 
 export async function deleteVehicleGroup(id: string): Promise<void> {
   await api.delete(`/vehicle-group/${id}`);
+}
+
+// ── SUPER: ERP provider accounts ──────────────────────────────────────────────
+export async function fetchErpAccounts(): Promise<ErpAccountResponse[]> {
+  const res = await api.get<ErpAccountResponse[]>("/erp/admin");
+  return res.data;
+}
+
+export async function createErpAccount(
+  payload: ErpAccountRequest,
+): Promise<ErpAccountResponse> {
+  const res = await api.post<ErpAccountResponse>("/erp/admin", payload);
+  return res.data;
+}
+
+export async function rotateErpKey(id: number): Promise<ErpAccountResponse> {
+  const res = await api.post<ErpAccountResponse>(`/erp/admin/${id}/rotate-key`);
+  return res.data;
+}
+
+export async function updateErpWebhook(
+  id: number,
+  webhookUrl: string,
+): Promise<ErpAccountResponse> {
+  const res = await api.put<ErpAccountResponse>(`/erp/admin/${id}/webhook`, { webhookUrl });
+  return res.data;
+}
+
+export async function fetchErpLinkedOrgs(id: number): Promise<UserRequestResponse[]> {
+  const res = await api.get<UserRequestResponse[]>(`/erp/admin/${id}/orgs`);
+  return res.data;
 }
